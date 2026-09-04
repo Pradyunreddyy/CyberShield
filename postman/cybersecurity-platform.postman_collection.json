@@ -1,0 +1,230 @@
+{
+  "info": {
+    "name": "Cybersecurity Incident Response Platform API",
+    "description": "REST API collection for the AI-Assisted Cybersecurity Incident Response Platform. Set {{base_url}} to your backend URL (default http://localhost:8000). Run 'Login' first to auto-populate {{access_token}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "access_token", "value": "" },
+    { "key": "incident_id", "value": "" },
+    { "key": "scan_id", "value": "" },
+    { "key": "finding_id", "value": "" },
+    { "key": "user_id", "value": "" },
+    { "key": "alert_id", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Test User\",\n  \"email\": \"test.user@example.com\",\n  \"password\": \"SuperSecret123!\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Login (Admin demo account)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.access_token) { pm.collectionVariables.set('access_token', data.access_token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"AdminDemo123!\"\n}" },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Get Current User (me)",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/auth/me", "host": ["{{base_url}}"], "path": ["api", "auth", "me"] } }
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "POST", "url": { "raw": "{{base_url}}/api/auth/logout", "host": ["{{base_url}}"], "path": ["api", "auth", "logout"] } }
+        }
+      ]
+    },
+    {
+      "name": "Incidents",
+      "item": [
+        {
+          "name": "List Incidents",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/incidents?page=1&page_size=20", "host": ["{{base_url}}"], "path": ["api", "incidents"], "query": [{ "key": "page", "value": "1" }, { "key": "page_size", "value": "20" }] } }
+        },
+        {
+          "name": "Create Incident",
+          "event": [
+            { "listen": "test", "script": { "exec": ["const data = pm.response.json();", "if (data.id) { pm.collectionVariables.set('incident_id', data.id); }"] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Suspicious login burst\",\n  \"description\": \"Multiple failed logins followed by success\",\n  \"incident_type\": \"credential_attack\",\n  \"severity\": \"high\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/incidents", "host": ["{{base_url}}"], "path": ["api", "incidents"] }
+          }
+        },
+        {
+          "name": "Get Incident",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/incidents/{{incident_id}}", "host": ["{{base_url}}"], "path": ["api", "incidents", "{{incident_id}}"] } }
+        },
+        {
+          "name": "Update Incident",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"investigating\"\n}" },
+            "url": { "raw": "{{base_url}}/api/incidents/{{incident_id}}", "host": ["{{base_url}}"], "path": ["api", "incidents", "{{incident_id}}"] }
+          }
+        },
+        {
+          "name": "Add Investigation Note",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"content\": \"Verified source IP reputation is malicious.\"\n}" },
+            "url": { "raw": "{{base_url}}/api/incidents/{{incident_id}}/notes", "host": ["{{base_url}}"], "path": ["api", "incidents", "{{incident_id}}", "notes"] }
+          }
+        },
+        {
+          "name": "Add Timeline Event",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Threat contained by isolating affected host.\"\n}" },
+            "url": { "raw": "{{base_url}}/api/incidents/{{incident_id}}/timeline", "host": ["{{base_url}}"], "path": ["api", "incidents", "{{incident_id}}", "timeline"] }
+          }
+        },
+        {
+          "name": "Add Response Action",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"action\": \"Blocked IP\",\n  \"result\": \"completed\"\n}" },
+            "url": { "raw": "{{base_url}}/api/incidents/{{incident_id}}/actions", "host": ["{{base_url}}"], "path": ["api", "incidents", "{{incident_id}}", "actions"] }
+          }
+        },
+        {
+          "name": "List Assignable Analysts",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/incidents/assignable-analysts", "host": ["{{base_url}}"], "path": ["api", "incidents", "assignable-analysts"] } }
+        },
+        {
+          "name": "Delete Incident",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/incidents/{{incident_id}}", "host": ["{{base_url}}"], "path": ["api", "incidents", "{{incident_id}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard & Analytics",
+      "item": [
+        { "name": "Dashboard Stats", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/dashboard/stats", "host": ["{{base_url}}"], "path": ["api", "dashboard", "stats"] } } },
+        { "name": "Analytics Overview", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/analytics/overview", "host": ["{{base_url}}"], "path": ["api", "analytics", "overview"] } } }
+      ]
+    },
+    {
+      "name": "AI Incident Analyzer",
+      "item": [
+        {
+          "name": "Analyze Incident",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Multiple failed login attempts followed by a successful login from a new country.\",\n  \"logs\": null,\n  \"indicators\": null\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/ai/analyze-incident", "host": ["{{base_url}}"], "path": ["api", "ai", "analyze-incident"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Project Security Analyzer",
+      "item": [
+        {
+          "name": "Upload Project (.zip)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["const data = pm.response.json();", "if (data.id) { pm.collectionVariables.set('scan_id', data.id); }", "if (data.findings && data.findings.length) { pm.collectionVariables.set('finding_id', data.findings[0].id); }"] } }
+          ],
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": [] }] },
+            "url": { "raw": "{{base_url}}/api/scans", "host": ["{{base_url}}"], "path": ["api", "scans"] }
+          }
+        },
+        { "name": "List Scans", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/scans", "host": ["{{base_url}}"], "path": ["api", "scans"] } } },
+        { "name": "Get Scan", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/scans/{{scan_id}}", "host": ["{{base_url}}"], "path": ["api", "scans", "{{scan_id}}"] } } },
+        { "name": "Get Scan Findings", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/scans/{{scan_id}}/findings", "host": ["{{base_url}}"], "path": ["api", "scans", "{{scan_id}}", "findings"] } } },
+        {
+          "name": "Create Incident From Finding",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": { "raw": "{{base_url}}/api/scans/{{scan_id}}/findings/{{finding_id}}/create-incident", "host": ["{{base_url}}"], "path": ["api", "scans", "{{scan_id}}", "findings", "{{finding_id}}", "create-incident"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        { "name": "List Alerts", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/alerts", "host": ["{{base_url}}"], "path": ["api", "alerts"] } } },
+        { "name": "Mark Alert Read", "request": { "method": "PUT", "url": { "raw": "{{base_url}}/api/alerts/{{alert_id}}/read", "host": ["{{base_url}}"], "path": ["api", "alerts", "{{alert_id}}", "read"] } } }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        { "name": "List Users", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/admin/users", "host": ["{{base_url}}"], "path": ["api", "admin", "users"] } } },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"full_name\": \"New Analyst\",\n  \"email\": \"new.analyst@example.com\",\n  \"password\": \"SuperSecret123!\",\n  \"role\": \"analyst\"\n}" },
+            "url": { "raw": "{{base_url}}/api/admin/users", "host": ["{{base_url}}"], "path": ["api", "admin", "users"] }
+          }
+        },
+        {
+          "name": "Update User (role / status)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"role\": \"analyst\",\n  \"is_active\": true\n}" },
+            "url": { "raw": "{{base_url}}/api/admin/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "users", "{{user_id}}"] }
+          }
+        },
+        { "name": "Audit Logs", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/admin/audit-logs", "host": ["{{base_url}}"], "path": ["api", "admin", "audit-logs"] } } },
+        { "name": "Admin Overview", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/admin/overview", "host": ["{{base_url}}"], "path": ["api", "admin", "overview"] } } }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        { "name": "Health Check", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/health", "host": ["{{base_url}}"], "path": ["api", "health"] } } }
+      ]
+    }
+  ]
+}

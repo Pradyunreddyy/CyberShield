@@ -1,0 +1,50 @@
+# Local development stack: FastAPI backend + PostgreSQL.
+# The React frontend is NOT included here - run it separately with `npm run dev`
+# (see README) since it's deployed to Vercel, not Docker, in production.
+#
+# Usage:
+#   docker compose up --build
+#   Backend will be available at http://localhost:8000
+#   Swagger UI at http://localhost:8000/docs
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: incident_platform
+      POSTGRES_PASSWORD: incident_platform_dev_password
+      POSTGRES_DB: incident_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U incident_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://incident_platform:incident_platform_dev_password@db:5432/incident_platform
+      JWT_SECRET_KEY: local-dev-secret-change-me
+      CORS_ORIGINS: http://localhost:5173
+      AI_PROVIDER: disabled
+      AI_API_KEY: ""
+      ENABLE_DEMO_SEED: "true"
+      ENVIRONMENT: development
+    volumes:
+      - ./backend:/app
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+volumes:
+  postgres_data:
