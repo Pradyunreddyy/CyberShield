@@ -34,11 +34,11 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173"
 
     # --- AI Service ------------------------------------------------------
-    AI_PROVIDER: str = "anthropic"  # anthropic | openai | disabled
+    AI_PROVIDER: str = "openrouter"  # openrouter | anthropic | openai | disabled
     AI_API_KEY: str = ""
-    AI_MODEL: str = "claude-sonnet-4-6"
-    AI_REQUEST_TIMEOUT_SECONDS: int = 30
-
+    AI_MODEL: str = "openrouter/free"
+    AI_REQUEST_TIMEOUT_SECONDS: int = 120
+    
     # --- File Uploads ------------------------------------------------------
     UPLOAD_MAX_SIZE_BYTES: int = 25 * 1024 * 1024  # 25 MB
     UPLOAD_ALLOWED_EXTENSIONS: str = ".zip"
