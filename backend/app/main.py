@@ -16,15 +16,16 @@ logger = logging.getLogger("app")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # For a semester project, tables are created directly from the SQLAlchemy
-    # models on startup. Alembic migrations are also provided (see /alembic)
-    # for anyone who wants a proper migration history against Postgres.
+    # Tables are created directly from the SQLAlchemy models on startup so the
+    # app runs out of the box. Alembic migrations are also provided (see
+    # /alembic) for anyone who wants a proper migration history against Postgres.
     Base.metadata.create_all(bind=engine)
 
     if settings.ENABLE_DEMO_SEED:
-        from app.seed import seed_demo_accounts_if_empty
+        from app.seed import seed_demo_accounts_if_empty, seed_demo_incidents_if_empty
 
         seed_demo_accounts_if_empty()
+        seed_demo_incidents_if_empty()
 
     yield
 
