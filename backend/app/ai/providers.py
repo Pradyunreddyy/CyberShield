@@ -43,23 +43,8 @@ class GeminiProvider(BaseAIProvider):
         }
 
         body = {
-            "systemInstruction": {
-                "parts": [
-                    {
-                        "text": system_prompt
-                    }
-                ]
-            },
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [
-                        {
-                            "text": user_prompt
-                        }
-                    ]
-                }
-            ],
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
             "generationConfig": {
                 "responseMimeType": "application/json",
                 "maxOutputTokens": 1500,
@@ -79,17 +64,9 @@ class GeminiProvider(BaseAIProvider):
 
         try:
             data = response.json()
-
-            raw_text = (
-                data["candidates"][0]
-                ["content"]["parts"][0]
-                ["text"]
-            ).strip()
-
+            raw_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
         except (KeyError, IndexError, TypeError) as exc:
-            raise AIProviderError(
-                f"Gemini returned an unexpected response: {data}"
-            ) from exc
+            raise AIProviderError(f"Gemini returned an unexpected response: {data}") from exc
 
         return _parse_json_response(raw_text)
 
@@ -107,17 +84,11 @@ class AnthropicProvider(BaseAIProvider):
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
         }
-
         body = {
             "model": settings.AI_MODEL,
             "max_tokens": 1500,
             "system": system_prompt,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": user_prompt
-                }
-            ],
+            "messages": [{"role": "user", "content": user_prompt}],
         }
 
         try:
@@ -129,20 +100,21 @@ class AnthropicProvider(BaseAIProvider):
             )
             response.raise_for_status()
         except httpx.HTTPError as exc:
-            raise AIProviderError(
-                f"Anthropic API request failed: {exc}"
-            ) from exc
+            raise AIProviderError(f"Anthropic API request failed: {exc}") from exc
 
-        data = response.json()
-
-        text_blocks = [
-            block["text"]
-            for block in data.get("content", [])
-            if block.get("type") == "text"
-        ]
+        try:
+            data = response.json()
+            text_blocks = [
+                block["text"]
+                for block in data.get("content", [])
+                if block.get("type") == "text"
+            ]
+        except (ValueError, AttributeError, TypeError, KeyError) as exc:
+            raise AIProviderError("Anthropic returned an invalid response.") from exc
 
         raw_text = "\n".join(text_blocks).strip()
-
+        if not raw_text:
+            raise AIProviderError("Anthropic returned empty content.")
         return _parse_json_response(raw_text)
 
 
@@ -158,22 +130,13 @@ class OpenAIProvider(BaseAIProvider):
             "Authorization": f"Bearer {settings.AI_API_KEY}",
             "content-type": "application/json",
         }
-
         body = {
             "model": settings.AI_MODEL,
             "messages": [
-                {
-                    "role": "system",
-                    "content": system_prompt
-                },
-                {
-                    "role": "user",
-                    "content": user_prompt
-                },
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
             ],
-            "response_format": {
-                "type": "json_object"
-            },
+            "response_format": {"type": "json_object"},
         }
 
         try:
@@ -185,19 +148,16 @@ class OpenAIProvider(BaseAIProvider):
             )
             response.raise_for_status()
         except httpx.HTTPError as exc:
-            raise AIProviderError(
-                f"OpenAI API request failed: {exc}"
-            ) from exc
+            raise AIProviderError(f"OpenAI API request failed: {exc}") from exc
 
-        data = response.json()
+        try:
+            data = response.json()
+            raw_text = data["choices"][0]["message"].get("content", "")
+        except (ValueError, KeyError, IndexError, TypeError) as exc:
+            raise AIProviderError("OpenAI returned an unexpected response.") from exc
 
-        message = data["choices"][0]["message"]
-        raw_text = message.get("content", "")
-        
         if not raw_text:
-            raise AIProviderError(
-                f"OpenRouter returned empty content: {data}"
-            )
+            raise AIProviderError("OpenAI returned empty content.")
         return _parse_json_response(raw_text)
 
 
@@ -214,21 +174,17 @@ class OpenRouterProvider(BaseAIProvider):
             "Content-Type": "application/json",
         }
 
+        # Do not force response_format here. OpenRouter's free model router can
+        # select models with different structured-output capabilities. The
+        # system prompt asks for JSON and _parse_json_response accepts both raw
+        # JSON and fenced/embedded JSON, making the integration compatible with
+        # a much wider range of OpenRouter models.
         body = {
             "model": settings.AI_MODEL or "openrouter/free",
             "messages": [
-                {
-                    "role": "system",
-                    "content": system_prompt
-                },
-                {
-                    "role": "user",
-                    "content": user_prompt
-                },
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
             ],
-            "response_format": {
-                "type": "json_object"
-            },
             "max_tokens": 1500,
         }
 
@@ -246,20 +202,16 @@ class OpenRouterProvider(BaseAIProvider):
                 detail = response.text
             except Exception:
                 pass
-
-            raise AIProviderError(
-                f"OpenRouter API request failed: {exc}. {detail}"
-            ) from exc
+            raise AIProviderError(f"OpenRouter API request failed: {exc}. {detail}") from exc
 
         try:
             data = response.json()
-            raw_text = data["choices"][0]["message"]["content"]
+            raw_text = data["choices"][0]["message"].get("content", "")
+        except (ValueError, KeyError, IndexError, TypeError) as exc:
+            raise AIProviderError(f"OpenRouter returned an unexpected response: {data}") from exc
 
-        except (KeyError, IndexError, TypeError) as exc:
-            raise AIProviderError(
-                f"OpenRouter returned an unexpected response: {data}"
-            ) from exc
-
+        if not raw_text:
+            raise AIProviderError(f"OpenRouter returned empty content: {data}")
         return _parse_json_response(raw_text)
 
 
@@ -269,27 +221,40 @@ class DisabledProvider(BaseAIProvider):
     name = "disabled"
 
     def complete_json(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
-        raise AIProviderError(
-            "The AI service is disabled on this deployment."
-        )
+        raise AIProviderError("The AI service is disabled on this deployment.")
 
 
 def _parse_json_response(raw_text: str) -> dict[str, Any]:
+    """Parse JSON returned by strict and less-strict chat models."""
     cleaned = raw_text.strip()
 
+    # Common markdown-fenced response: ```json ... ```
     if cleaned.startswith("```"):
-        cleaned = cleaned.strip("`")
-
+        cleaned = cleaned[3:]
         if cleaned.lower().startswith("json"):
             cleaned = cleaned[4:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        cleaned = cleaned.strip()
 
     try:
-        return json.loads(cleaned)
-
-    except json.JSONDecodeError as exc:
-        raise AIProviderError(
-            f"AI provider returned a non-JSON response: {exc}"
-        ) from exc
+        parsed = json.loads(cleaned)
+        if not isinstance(parsed, dict):
+            raise AIProviderError("AI provider returned JSON that was not an object.")
+        return parsed
+    except json.JSONDecodeError:
+        # Some free models add a short sentence before/after the JSON object.
+        # Extract the outermost object as a compatibility fallback.
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                parsed = json.loads(cleaned[start : end + 1])
+                if isinstance(parsed, dict):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+        raise AIProviderError("AI provider returned a non-JSON response.")
 
 
 _PROVIDERS = {
@@ -302,9 +267,5 @@ _PROVIDERS = {
 
 
 def get_provider() -> BaseAIProvider:
-    provider_cls = _PROVIDERS.get(
-        settings.AI_PROVIDER.lower(),
-        DisabledProvider
-    )
-
+    provider_cls = _PROVIDERS.get(settings.AI_PROVIDER.lower(), DisabledProvider)
     return provider_cls()
