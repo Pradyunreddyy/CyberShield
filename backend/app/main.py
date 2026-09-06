@@ -22,10 +22,9 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
 
     if settings.ENABLE_DEMO_SEED:
-        from app.seed import seed_demo_accounts_if_empty, seed_demo_incidents_if_empty
+        from app.demo_data import ensure_demo_data
 
-        seed_demo_accounts_if_empty()
-        seed_demo_incidents_if_empty()
+        ensure_demo_data()
 
     yield
 
