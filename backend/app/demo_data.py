@@ -5,7 +5,7 @@ from datetime import timedelta
 from app.core.security import hash_password
 from app.database.session import SessionLocal
 from app.models.alert import Alert
-from app.models.common import IncidentStatus, UserRole, utcnow
+from app.models.common import IncidentStatus, utcnow
 from app.models.incident import Incident, IncidentTimelineEvent
 from app.models.user import User
 from app.seed import DEMO_ACCOUNTS, DEMO_INCIDENTS
@@ -40,16 +40,20 @@ def ensure_demo_data() -> None:
             db.commit()
             return
 
-        existing_codes = {
-            code
-            for (code,) in db.query(Incident.code).filter(Incident.source == "demo_seed").all()
+        existing_codes = {code for (code,) in db.query(Incident.code).all()}
+        existing_demo_codes = {
+            code for (code,) in db.query(Incident.code).filter(Incident.source == "demo_seed").all()
         }
         now = utcnow()
         added = 0
 
         for index, item in enumerate(DEMO_INCIDENTS):
-            code = f"INC-{1000 + index + 1}"
+            base_code = f"INC-{1000 + index + 1}"
+            if base_code in existing_demo_codes:
+                continue
+            code = base_code if base_code not in existing_codes else f"DEMO-{1000 + index + 1}"
             if code in existing_codes:
+                logger.info("Skipping demo incident %s because its fallback code already exists.", base_code)
                 continue
 
             reporter = developer if index % 3 == 0 and developer else analyst
@@ -100,6 +104,7 @@ def ensure_demo_data() -> None:
                         updated_at=created_at,
                     )
                 )
+            existing_codes.add(code)
             added += 1
 
         db.commit()
