@@ -8,11 +8,11 @@ export function AuthLayout({ children, title, subtitle }) {
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-signal/15 text-signal">
             <ShieldAlert size={17} />
           </div>
-          <span className="text-sm font-semibold text-ink">Sentinel SOC</span>
+          <span className="text-sm font-semibold text-ink">CyberShield</span>
         </div>
 
         <div className="relative z-10">
-          <p className="font-mono text-xs uppercase tracking-widest text-signal">Incident Response Platform</p>
+          <p className="font-mono text-xs uppercase tracking-widest text-signal">AI-Powered Cybersecurity Incident Response Platform</p>
           <h2 className="mt-3 max-w-sm text-2xl font-semibold leading-snug text-ink">
             Detect, investigate, and resolve threats with an AI analyst at your side.
           </h2>
@@ -30,7 +30,7 @@ export function AuthLayout({ children, title, subtitle }) {
           </ul>
         </div>
 
-        <p className="relative z-10 text-xs text-ink-faint">Semester Project &middot; Cybersecurity Incident Response</p>
+        <p className="relative z-10 text-xs text-ink-faint">Detect. Analyze. Respond. Secure.</p>
 
         {/* Subtle decorative radar rings - a single deliberate motion moment, not scattered effects */}
         <div className="pointer-events-none absolute -right-24 -bottom-24 h-72 w-72 rounded-full border border-signal/10" />
@@ -44,7 +44,7 @@ export function AuthLayout({ children, title, subtitle }) {
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-signal/15 text-signal">
               <ShieldAlert size={17} />
             </div>
-            <span className="text-sm font-semibold text-ink">Sentinel SOC</span>
+            <span className="text-sm font-semibold text-ink">CyberShield</span>
           </div>
           <h1 className="text-xl font-semibold text-ink">{title}</h1>
           {subtitle && <p className="mt-1.5 text-sm text-ink-muted">{subtitle}</p>}
