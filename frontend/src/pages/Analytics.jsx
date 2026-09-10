@@ -22,7 +22,9 @@ import { titleCase } from "../utils/formatters";
 
 const SEVERITY_COLORS = { critical: "#FF4757", high: "#FF9F43", medium: "#F0C93D", low: "#6C7A92" };
 const STATUS_COLORS = { open: "#5B8CFF", investigating: "#F0C93D", contained: "#FF9F43", resolved: "#2ED573", closed: "#5B6472" };
-const chartTooltipStyle = { background: "#171B24", border: "1px solid #232833", borderRadius: 6, fontSize: 12 };
+const chartTooltipStyle = { background: "#171B24", border: "1px solid #232833", borderRadius: 6, fontSize: 12, color: "#F5F7FA" };
+const chartTooltipItemStyle = { color: "#F5F7FA" };
+const chartTooltipLabelStyle = { color: "#F5F7FA" };
 const axisTick = { fontSize: 11, fill: "#8891A0" };
 
 export default function Analytics() {
@@ -65,7 +67,7 @@ export default function Analytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="#1A1E27" vertical={false} />
               <XAxis dataKey="date" tick={axisTick} tickFormatter={(d) => d.slice(5)} axisLine={false} tickLine={false} />
               <YAxis tick={axisTick} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip contentStyle={chartTooltipStyle} />
+              <Tooltip contentStyle={chartTooltipStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
               <Line type="monotone" dataKey="count" stroke="#5B8CFF" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
@@ -77,7 +79,7 @@ export default function Analytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="#1A1E27" vertical={false} />
               <XAxis dataKey="date" tick={axisTick} tickFormatter={(d) => d.slice(5)} axisLine={false} tickLine={false} />
               <YAxis tick={axisTick} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip contentStyle={chartTooltipStyle} />
+              <Tooltip contentStyle={chartTooltipStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
               <Line type="monotone" dataKey="count" stroke="#2ED573" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
@@ -94,7 +96,7 @@ export default function Analytics() {
                 ))}
               </Pie>
               <Legend verticalAlign="bottom" height={24} formatter={(v) => <span className="text-xs text-ink-muted capitalize">{v}</span>} />
-              <Tooltip contentStyle={chartTooltipStyle} />
+              <Tooltip contentStyle={chartTooltipStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
             </PieChart>
           </ResponsiveContainer>
         </Panel>
@@ -108,7 +110,7 @@ export default function Analytics() {
                 ))}
               </Pie>
               <Legend verticalAlign="bottom" height={24} formatter={(v) => <span className="text-xs text-ink-muted capitalize">{v}</span>} />
-              <Tooltip contentStyle={chartTooltipStyle} />
+              <Tooltip contentStyle={chartTooltipStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
             </PieChart>
           </ResponsiveContainer>
         </Panel>
@@ -119,7 +121,7 @@ export default function Analytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="#1A1E27" horizontal={false} />
               <XAxis type="number" tick={axisTick} axisLine={false} tickLine={false} allowDecimals={false} />
               <YAxis type="category" dataKey="label" width={100} tick={axisTick} axisLine={false} tickLine={false} tickFormatter={(v) => titleCase(v)} />
-              <Tooltip contentStyle={chartTooltipStyle} />
+              <Tooltip contentStyle={chartTooltipStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
               <Bar dataKey="count" fill="#5B8CFF" radius={[0, 3, 3, 0]} />
             </BarChart>
           </ResponsiveContainer>
