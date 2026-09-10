@@ -33,6 +33,23 @@ import { formatDateTime, titleCase } from "../utils/formatters";
 
 const SEVERITY_COLORS = { critical: "#FF4757", high: "#FF9F43", medium: "#F0C93D", low: "#6C7A92" };
 const STATUS_COLORS = { open: "#5B8CFF", investigating: "#F0C93D", contained: "#FF9F43", resolved: "#2ED573", closed: "#5B6472" };
+const tooltipStyle = { background: "#171B24", border: "1px solid #232833", borderRadius: 6, fontSize: 12, color: "#F5F7FA" };
+const tooltipItemStyle = { color: "#F5F7FA" };
+const tooltipLabelStyle = { color: "#F5F7FA" };
+
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div style={{ ...tooltipStyle, padding: "8px 10px" }}>
+      {label != null && <div style={{ color: "#F5F7FA", marginBottom: 4 }}>{label}</div>}
+      {payload.map((entry, index) => (
+        <div key={`${entry.name || entry.dataKey || "value"}-${index}`} style={{ color: "#F5F7FA", lineHeight: 1.5 }}>
+          {entry.name || entry.dataKey}: {entry.value}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -113,7 +130,7 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#1A1E27" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#8891A0" }} tickFormatter={(d) => d.slice(5)} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 11, fill: "#8891A0" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip contentStyle={{ background: "#171B24", border: "1px solid #232833", borderRadius: 6, fontSize: 12 }} />
+                  <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
                   <Area type="monotone" dataKey="count" stroke="#5B8CFF" fill="url(#incidentGradient)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -143,7 +160,7 @@ export default function Dashboard() {
                     height={24}
                     formatter={(value) => <span className="text-xs text-ink-muted capitalize">{value}</span>}
                   />
-                  <Tooltip contentStyle={{ background: "#171B24", border: "1px solid #232833", borderRadius: 6, fontSize: 12 }} />
+                  <Tooltip content={<ChartTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -167,7 +184,7 @@ export default function Dashboard() {
                   tickLine={false}
                   tickFormatter={(v) => titleCase(v)}
                 />
-                <Tooltip contentStyle={{ background: "#171B24", border: "1px solid #232833", borderRadius: 6, fontSize: 12 }} />
+                <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
                 <Bar dataKey="count" fill="#5B8CFF" radius={[0, 3, 3, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -179,7 +196,7 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#1A1E27" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#8891A0" }} axisLine={false} tickLine={false} tickFormatter={(v) => titleCase(v)} />
                 <YAxis tick={{ fontSize: 11, fill: "#8891A0" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: "#171B24", border: "1px solid #232833", borderRadius: 6, fontSize: 12 }} />
+                <Tooltip content={<ChartTooltip />} />
                 <Bar dataKey="count" radius={[3, 3, 0, 0]}>
                   {overview.incidents_by_status.map((entry) => (
                     <Cell key={entry.label} fill={STATUS_COLORS[entry.label] || "#5B6472"} />
