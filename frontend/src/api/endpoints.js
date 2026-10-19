@@ -40,6 +40,14 @@ export const scansApi = {
       onUploadProgress,
     });
   },
+  uploadFiles: (files, onUploadProgress) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file, file.webkitRelativePath || file.name));
+    return apiClient.post("/api/scans", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress,
+    });
+  },
   list: () => apiClient.get("/api/scans"),
   get: (id) => apiClient.get(`/api/scans/${id}`),
   findings: (id) => apiClient.get(`/api/scans/${id}/findings`),
