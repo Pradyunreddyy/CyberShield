@@ -42,6 +42,7 @@ def upload_scan(
 
     max_bytes = settings.UPLOAD_MAX_SIZE_BYTES
     total_bytes = 0
+    seen_paths = set()
     temp_path = None
     allowed_exts = {
         ".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".c", ".h", ".cpp", ".hpp", ".cs",
@@ -56,14 +57,25 @@ def upload_scan(
         with zipfile.ZipFile(temp_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
             for upload in uploads:
                 name = (upload.filename or "").replace("\\", "/")
+                raw_parts = name.split("/")
                 path = PurePosixPath(name)
                 parts = path.parts
-                if not name or path.is_absolute() or any(part in ("", ".", "..") for part in parts) or ":" in name:
+                if (
+                    not name
+                    or name.startswith("/")
+                    or any(part in ("", ".", "..") for part in raw_parts)
+                    or path.is_absolute()
+                    or ":" in name
+                ):
                     raise HTTPException(status_code=400, detail="A file path is invalid or attempts to escape the project folder.")
                 if any(part in ignored_dirs or part.startswith(".") for part in parts[:-1]):
                     continue
                 if path.suffix.lower() not in allowed_exts and path.name.lower() not in {"dockerfile", "makefile", ".env"}:
                     continue
+                normalized_name = str(path)
+                if normalized_name in seen_paths:
+                    raise HTTPException(status_code=400, detail="The upload contains duplicate file paths.")
+                seen_paths.add(normalized_name)
                 data = upload.file.read(max_bytes - total_bytes + 1)
                 total_bytes += len(data)
                 if total_bytes > max_bytes:

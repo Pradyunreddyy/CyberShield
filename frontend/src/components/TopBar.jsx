@@ -106,7 +106,7 @@ export function TopBar({ crumbs = [], onOpenMobileNav, menuButtonRef }) {
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         <button
           type="button"
-          onClick={() => navigate("/alerts", { state: { openedFromDashboardBell: true } })}
+          onClick={() => navigate("/alerts")}
           className="relative flex h-9 w-9 items-center justify-center rounded-md text-ink-muted transition-colors duration-120 hover:bg-panel-raised hover:text-ink"
           aria-label={unreadCount > 0 ? `View alerts, ${unreadCount} unread` : "View alerts"}
         >
