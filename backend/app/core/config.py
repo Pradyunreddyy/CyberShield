@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     UPLOAD_ALLOWED_EXTENSIONS: str = ".zip"
     UPLOAD_TMP_DIR: str = "/tmp/incident_platform_uploads"
     MAX_FILES_PER_ARCHIVE: int = 2000
+    UPLOAD_MAX_FILES: int = 2000
     MAX_UNCOMPRESSED_ARCHIVE_BYTES: int = 200 * 1024 * 1024  # 200 MB, anti zip-bomb
 
     # --- Demo / seed data ------------------------------------------------------
