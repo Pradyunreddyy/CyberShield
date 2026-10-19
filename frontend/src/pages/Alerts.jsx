@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { AlertOctagon, AlertTriangle, ArrowRight, Bell, Info, ShieldAlert } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { AlertOctagon, AlertTriangle, ArrowRight, Bell, Info, ShieldAlert, X } from "lucide-react";
 import { Panel, PageHeader, EmptyState, SkeletonRows, ErrorState } from "../components/Primitives";
 import { alertsApi } from "../api/endpoints";
 import { formatRelativeTime, titleCase } from "../utils/formatters";
@@ -18,6 +18,9 @@ const SEVERITY_TAG = {
 };
 
 export default function Alerts() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const openedFromDashboardBell = location.state?.openedFromDashboardBell === true;
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -49,7 +52,22 @@ export default function Alerts() {
 
   return (
     <div>
-      <PageHeader title="Alerts" description="Notifications raised by incidents and project scans. Select an alert to mark it as read." />
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <PageHeader title="Alerts" description="Notifications raised by incidents and project scans. Select an alert to mark it as read." />
+        </div>
+        {openedFromDashboardBell && (
+          <button
+            type="button"
+            onClick={() => navigate("/dashboard", { replace: true })}
+            aria-label="Close alerts and return to dashboard"
+            title="Back to dashboard"
+            className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-hairline bg-panel text-ink-muted transition-colors hover:bg-panel-raised hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-signal"
+          >
+            <X size={17} aria-hidden="true" />
+          </button>
+        )}
+      </div>
 
       <div className="mb-4 inline-flex rounded-md border border-hairline bg-panel p-0.5" role="group" aria-label="Filter alerts">
         {[

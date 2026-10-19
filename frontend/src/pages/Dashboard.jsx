@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AlertOctagon, ArrowRight, ListChecks, Plus, Radar, RefreshCw, Siren, FolderSearch, Bell, AlertTriangle, Info, ShieldAlert } from "lucide-react";
+import { AlertOctagon, ArrowRight, ListChecks, Plus, Radar, RefreshCw, Siren, FolderSearch } from "lucide-react";
 import { StatCard } from "../components/StatCard";
 import { Button } from "../components/Form";
 import { Panel, PageHeader, EmptyState, SkeletonBlock, SkeletonRows, ErrorState } from "../components/Primitives";
 import { SeverityBadge, StatusBadge } from "../components/Badges";
 import { ColumnChart, DonutChart, HorizontalBarChart, SEVERITY_COLORS, STATUS_COLORS, TimeSeriesChart } from "../components/charts";
-import { dashboardApi, analyticsApi, incidentsApi, alertsApi } from "../api/endpoints";
+import { dashboardApi, analyticsApi, incidentsApi } from "../api/endpoints";
 import { useAuth } from "../hooks/useAuth";
-import { formatDateTime, formatRelativeTime, titleCase } from "../utils/formatters";
-import { Modal } from "../components/Modal";
+import { formatDateTime, titleCase } from "../utils/formatters";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -20,8 +19,6 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [overview, setOverview] = useState(null);
   const [recentIncidents, setRecentIncidents] = useState([]);
-  const [recentAlerts, setRecentAlerts] = useState([]);
-  const [selectedAlert, setSelectedAlert] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
@@ -33,15 +30,14 @@ export default function Dashboard() {
       setLoading(true);
       setError("");
       try {
-        const requests = [dashboardApi.stats(), incidentsApi.list({ page: 1, page_size: 6, sort_by: "created_at", sort_dir: "desc" }), alertsApi.list()];
+        const requests = [dashboardApi.stats(), incidentsApi.list({ page: 1, page_size: 6, sort_by: "created_at", sort_dir: "desc" })];
         if (canSeeAnalytics) requests.push(analyticsApi.overview());
 
         const results = await Promise.all(requests);
         if (!mounted) return;
         setStats(results[0].data);
         setRecentIncidents(results[1].data.items);
-        setRecentAlerts((results[2].data || []).slice(0, 5));
-        if (canSeeAnalytics) setOverview(results[3].data);
+        if (canSeeAnalytics) setOverview(results[2].data);
         setUpdatedAt(new Date());
       } catch (err) {
         if (mounted) setError("Could not load dashboard data. Please try refreshing the page.");
@@ -174,10 +170,6 @@ export default function Dashboard() {
         )}
       </section>
 
-      <Modal open={!!selectedAlert} onClose={() => setSelectedAlert(null)} title="Alert details" width="max-w-xl">
-        {selectedAlert && <div className="space-y-4"><p className="text-sm leading-6 text-ink">{selectedAlert.message}</p><dl className="grid grid-cols-1 gap-3 sm:grid-cols-2"><div><dt className="text-xs text-ink-muted">Severity</dt><dd className="mt-1 text-sm font-medium text-ink">{titleCase(selectedAlert.severity)}</dd></div><div><dt className="text-xs text-ink-muted">Type</dt><dd className="mt-1 text-sm text-ink">{titleCase(selectedAlert.alert_type)}</dd></div><div><dt className="text-xs text-ink-muted">Created</dt><dd className="mt-1 text-sm text-ink">{formatDateTime(selectedAlert.created_at)}</dd></div></dl>{selectedAlert.related_incident_id && <Button variant="secondary" size="sm" onClick={() => { setSelectedAlert(null); navigate(`/incidents/${selectedAlert.related_incident_id}`); }}>View related incident <ArrowRight size={13} aria-hidden="true" /></Button>}{selectedAlert.related_scan_id && <Button variant="secondary" size="sm" onClick={() => { setSelectedAlert(null); navigate(`/project-scanner/${selectedAlert.related_scan_id}`); }}>View related scan <ArrowRight size={13} aria-hidden="true" /></Button>}</div>}
-      </Modal>
-
       {canSeeAnalytics && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Panel title="Incidents over time" description="New incidents per day, last 14 days" className="lg:col-span-2">
@@ -214,25 +206,6 @@ export default function Dashboard() {
           </Panel>
         </div>
       )}
-
-      <Panel title="Recent alerts" action={<Link to="/alerts" className="flex items-center gap-1 rounded text-xs font-medium text-signal hover:text-signal-bright">View all <ArrowRight size={12} aria-hidden="true" /></Link>}>
-        {loading && !stats ? <SkeletonRows rows={3} cols={1} /> : recentAlerts.length === 0 ? (
-          <EmptyState icon={Bell} title="No alerts" description="Alerts raised by incidents and project scans will appear here." />
-        ) : (
-          <ul className="divide-y divide-hairline-soft">
-            {recentAlerts.map((alert) => {
-              const Icon = alert.severity === "critical" ? AlertOctagon : alert.severity === "warning" ? AlertTriangle : alert.severity === "info" ? Info : ShieldAlert;
-              return <li key={alert.id}>
-                <button type="button" onClick={() => setSelectedAlert(alert)} className="flex w-full items-start gap-3 rounded-md px-2.5 py-3 text-left hover:bg-panel-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-signal">
-                  <span className="mt-0.5 rounded-full bg-panel-raised p-2 text-signal"><Icon size={15} aria-hidden="true" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-sm text-ink">{alert.message}</span><span className="mt-1 block text-xs text-ink-muted">{titleCase(alert.severity)} · {formatRelativeTime(alert.created_at)}</span></span>
-                  <ArrowRight size={14} className="mt-1 shrink-0 text-ink-muted" aria-hidden="true" />
-                </button>
-              </li>;
-            })}
-          </ul>
-        )}
-      </Panel>
 
       <Panel
         title="Recent incidents"
