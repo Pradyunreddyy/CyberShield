@@ -81,3 +81,28 @@ def test_create_incident_from_finding(client, developer_token):
     incident = incident_resp.json()
     assert incident["source"] == "project_scanner"
     assert incident["source_finding_id"] == finding_id
+
+
+def test_upload_multiple_source_files(client, developer_token):
+    response = client.post(
+        "/api/scans",
+        files=[
+            ("files", ("src/app.py", b"import os\nos.system(input())\n", "text/plain")),
+            ("files", ("README.md", b"Project notes", "text/markdown")),
+        ],
+        headers=auth_headers(developer_token),
+    )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["status"] == "completed"
+    assert body["files_scanned"] >= 2
+    assert any(f["finding_type"] == "OS command execution" for f in body["findings"])
+
+
+def test_reject_unsafe_multipart_path(client, developer_token):
+    response = client.post(
+        "/api/scans",
+        files=[("files", ("../escape.py", b"print('no')", "text/plain"))],
+        headers=auth_headers(developer_token),
+    )
+    assert response.status_code == 400

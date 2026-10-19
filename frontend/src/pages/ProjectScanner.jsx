@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { UploadCloud, ScanSearch, FileArchive, ShieldCheck } from "lucide-react";
+import { UploadCloud, ScanSearch, FileArchive, ShieldCheck, Files, FolderOpen } from "lucide-react";
 import { Panel, PageHeader, EmptyState, SkeletonRows, ErrorState } from "../components/Primitives";
 import { RiskBadge, StatusBadge } from "../components/Badges";
 import { scansApi } from "../api/endpoints";
@@ -12,6 +12,8 @@ export default function ProjectScanner() {
   const navigate = useNavigate();
   const toast = useToast();
   const inputRef = useRef(null);
+  const multiInputRef = useRef(null);
+  const folderInputRef = useRef(null);
 
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,28 +48,29 @@ export default function ProjectScanner() {
     return () => clearInterval(t);
   }, [uploading]);
 
-  async function handleFile(file) {
-    if (!file || uploading) return;
-    if (!file.name.toLowerCase().endsWith(".zip")) {
-      toast.error("Only .zip project archives are supported.");
+  async function handleFiles(fileList, mode = "multiple") {
+    const files = Array.from(fileList || []);
+    if (!files.length || uploading) return;
+    const isZip = files.length === 1 && files[0].name.toLowerCase().endsWith(".zip") && mode !== "folder";
+    if (files.some((item) => item.name.toLowerCase().endsWith(".zip")) && !isZip) {
+      toast.error("Upload one ZIP archive at a time, or select source files/folders without ZIP files.");
       return;
     }
+    const totalBytes = files.reduce((sum, item) => sum + item.size, 0);
+    if (totalBytes > 25 * 1024 * 1024) { toast.error("The total upload must be 25 MB or smaller."); return; }
     setUploading(true);
-    setUploadingName(`${file.name} · ${formatBytes(file.size)}`);
+    setUploadingName(`${files.length === 1 ? (files[0].webkitRelativePath || files[0].name) : `${files.length} files`} · ${formatBytes(totalBytes)}`);
     try {
-      const res = await scansApi.upload(file);
+      const res = isZip ? await scansApi.upload(files[0]) : await scansApi.uploadFiles(files);
       toast.success(`Scan complete — overall risk: ${res.data.overall_risk?.toUpperCase()}.`);
       navigate(`/project-scanner/${res.data.id}`);
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Could not analyze the uploaded project."));
-    } finally {
-      setUploading(false);
-    }
+    } finally { setUploading(false); }
   }
-
   return (
     <div className="space-y-6">
-      <PageHeader title="Project security analyzer" description="Upload a project archive for static security analysis. Findings can be escalated into incidents." />
+      <PageHeader title="Project security analyzer" description="Upload a ZIP archive, source files, or a folder for static security analysis. Findings can be escalated into incidents." />
 
       <Panel title="Upload a project">
         <p className="mb-4 flex items-start gap-2 text-sm text-ink-muted">
@@ -91,7 +94,7 @@ export default function ProjectScanner() {
           onDrop={(e) => {
             e.preventDefault();
             setDragActive(false);
-            handleFile(e.dataTransfer.files?.[0]);
+            handleFiles(e.dataTransfer.files, "drop");
           }}
           className={`flex min-h-[176px] flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-10 text-center transition-colors duration-120 focus-within:border-signal focus-within:bg-signal/5 ${
             uploading ? "cursor-progress" : "cursor-pointer"
@@ -100,12 +103,12 @@ export default function ProjectScanner() {
           <input
             ref={inputRef}
             type="file"
-            accept=".zip"
+            accept=".zip,.py,.js,.jsx,.ts,.tsx,.java,.c,.cpp,.cs,.go,.rb,.php,.sh,.bash,.ps1,.yml,.yaml,.json,.env,.txt,.md,.html,.css,.sql,.xml,.toml,.ini,.cfg,.rs,.swift,.kt,.dart,.vue,.svelte"
             disabled={uploading}
             className="sr-only"
-            aria-label="Upload a project .zip archive"
+            aria-label="Upload a ZIP archive or source file"
             onChange={(e) => {
-              handleFile(e.target.files?.[0]);
+              handleFiles(e.target.files, "zip");
               e.target.value = ""; // lets the same file be chosen again
             }}
           />
@@ -122,12 +125,18 @@ export default function ProjectScanner() {
             <>
               <UploadCloud size={28} aria-hidden="true" className={dragActive ? "text-signal" : "text-ink-muted"} />
               <p className="text-sm text-ink">
-                <span className="font-medium text-signal">Choose a file</span> or drag and drop it here
+                <span className="font-medium text-signal">Choose a ZIP or source file</span> or drag and drop files here
               </p>
-              <p className="text-xs text-ink-muted">ZIP archives only · max 25 MB</p>
+              <p className="text-xs text-ink-muted">ZIP, individual source files, multiple files, or a whole folder · 25 MB total</p>
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                <button type="button" disabled={uploading} onClick={(e) => { e.preventDefault(); e.stopPropagation(); multiInputRef.current?.click(); }} className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-2 text-xs font-medium text-ink-muted hover:bg-panel-raised"><Files size={14} /> Select multiple files</button>
+                <button type="button" disabled={uploading} onClick={(e) => { e.preventDefault(); e.stopPropagation(); folderInputRef.current?.click(); }} className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-2 text-xs font-medium text-ink-muted hover:bg-panel-raised"><FolderOpen size={14} /> Select folder</button>
+              </div>
             </>
           )}
         </label>
+        <input ref={multiInputRef} type="file" multiple disabled={uploading} className="sr-only" aria-label="Select multiple project files" onChange={(e) => { handleFiles(e.target.files, "multiple"); e.target.value = ""; }} />
+        <input ref={folderInputRef} type="file" multiple webkitdirectory="" directory="" disabled={uploading} className="sr-only" aria-label="Select a project folder" onChange={(e) => { handleFiles(e.target.files, "folder"); e.target.value = ""; }} />
       </Panel>
 
       <Panel title="Scan history">
@@ -136,7 +145,7 @@ export default function ProjectScanner() {
         ) : loading ? (
           <SkeletonRows rows={5} cols={5} />
         ) : scans.length === 0 ? (
-          <EmptyState icon={ScanSearch} title="No scans yet" description="Upload a project archive above to run your first security analysis." />
+          <EmptyState icon={ScanSearch} title="No scans yet" description="Upload a ZIP archive, source files, or a folder above to run your first security analysis." />
         ) : (
           <div className="relative overflow-x-auto">
             <table className="data-table text-left">
