@@ -41,7 +41,7 @@ export default function Dashboard() {
         setStats(results[0].data);
         setRecentIncidents(results[1].data.items);
         setRecentAlerts((results[2].data || []).slice(0, 5));
-        if (canSeeAnalytics) setOverview(results[2].data);
+        if (canSeeAnalytics) setOverview(results[3].data);
         setUpdatedAt(new Date());
       } catch (err) {
         if (mounted) setError("Could not load dashboard data. Please try refreshing the page.");

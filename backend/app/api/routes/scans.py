@@ -62,7 +62,7 @@ def upload_scan(
                     raise HTTPException(status_code=400, detail="A file path is invalid or attempts to escape the project folder.")
                 if any(part in ignored_dirs or part.startswith(".") for part in parts[:-1]):
                     continue
-                if path.suffix.lower() not in allowed_exts and path.name.lower() not in {"dockerfile", "makefile"}:
+                if path.suffix.lower() not in allowed_exts and path.name.lower() not in {"dockerfile", "makefile", ".env"}:
                     continue
                 data = upload.file.read(max_bytes - total_bytes + 1)
                 total_bytes += len(data)

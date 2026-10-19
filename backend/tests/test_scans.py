@@ -87,7 +87,7 @@ def test_upload_multiple_source_files(client, developer_token):
     response = client.post(
         "/api/scans",
         files=[
-            ("files", ("src/app.py", b"import os\\nos.system(input())\\n", "text/plain")),
+            ("files", ("src/app.py", b"import os\nos.system(input())\n", "text/plain")),
             ("files", ("README.md", b"Project notes", "text/markdown")),
         ],
         headers=auth_headers(developer_token),
