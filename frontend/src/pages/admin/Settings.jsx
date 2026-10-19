@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Database, KeyRound, Server, Settings as SettingsIcon, Users, ListChecks, FolderSearch } from "lucide-react";
-import { Panel, SkeletonBlock, ErrorState } from "../../components/Primitives";
+import { Panel, PageHeader, SkeletonBlock, ErrorState } from "../../components/Primitives";
 import { StatCard } from "../../components/StatCard";
 import { adminApi } from "../../api/endpoints";
 import { API_BASE_URL } from "../../api/client";
@@ -13,59 +13,65 @@ const INCIDENT_TYPES = [
 export default function AdminSettings() {
   const [overview, setOverview] = useState(null);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    setError("");
     adminApi
       .overview()
       .then((res) => setOverview(res.data))
       .catch(() => setError("Could not load platform overview."));
-  }, []);
+  }, [reloadKey]);
 
   return (
     <div className="space-y-6">
-      {error && <ErrorState message={error} />}
+      <PageHeader title="Settings" description="Platform overview and configuration reference." />
+
+      {error && <ErrorState title="Overview unavailable" message={error} onRetry={() => setReloadKey((k) => k + 1)} />}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {!overview ? (
-          <>
-            <SkeletonBlock className="h-24" />
-            <SkeletonBlock className="h-24" />
-            <SkeletonBlock className="h-24" />
-          </>
+          error ? null : (
+            <>
+              <SkeletonBlock className="h-24" />
+              <SkeletonBlock className="h-24" />
+              <SkeletonBlock className="h-24" />
+            </>
+          )
         ) : (
           <>
-            <StatCard label="Total Users" value={overview.total_users} icon={Users} accent="signal" />
-            <StatCard label="Total Incidents" value={overview.total_incidents} icon={ListChecks} accent="warning" />
-            <StatCard label="Total Project Scans" value={overview.total_scans} icon={FolderSearch} accent="muted" />
+            <StatCard label="Total users" value={overview.total_users} icon={Users} accent="signal" to="/admin/users" />
+            <StatCard label="Total incidents" value={overview.total_incidents} icon={ListChecks} accent="warning" to="/incidents" />
+            <StatCard label="Total project scans" value={overview.total_scans} icon={FolderSearch} accent="muted" to="/project-scanner" />
           </>
         )}
       </div>
 
-      <Panel title="Platform Configuration">
-        <p className="mb-4 text-sm text-ink-muted">
-          Sensitive configuration (database credentials, JWT secret, AI API key) is managed exclusively through backend
-          environment variables and is never exposed to the frontend or stored in the browser.
+      <Panel title="Platform configuration">
+        <p className="mb-4 max-w-prose text-sm text-ink-muted">
+          Sensitive configuration (database credentials, JWT secret, AI API key) is managed exclusively through backend environment variables and is never exposed
+          to the frontend or stored in the browser.
         </p>
-        <div className="space-y-3">
-          <ConfigRow icon={Server} label="API Base URL" value={API_BASE_URL} />
+        <dl className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <ConfigRow icon={Server} label="API base URL" value={API_BASE_URL} />
           <ConfigRow icon={Database} label="Database" value="Configured via DATABASE_URL (PostgreSQL in production)" />
           <ConfigRow icon={KeyRound} label="Authentication" value="JWT bearer tokens, bcrypt-hashed passwords" />
-          <ConfigRow icon={SettingsIcon} label="AI Provider" value="Configured via AI_PROVIDER / AI_API_KEY on the backend" />
-        </div>
+          <ConfigRow icon={SettingsIcon} label="AI provider" value="Configured via AI_PROVIDER / AI_API_KEY on the backend" />
+        </dl>
       </Panel>
 
-      <Panel title="Incident Categories">
-        <p className="mb-3 text-sm text-ink-muted">
-          The current set of incident categories used across the platform. For this semester project, categories are a
-          curated fixed list; extending them only requires adding a value here and to the incident creation form.
+      <Panel title="Incident categories">
+        <p className="mb-3 max-w-prose text-sm text-ink-muted">
+          The incident categories used across the platform. Categories are a curated fixed list; extending them only requires adding a value here and to the incident
+          creation form.
         </p>
-        <div className="flex flex-wrap gap-2">
+        <ul className="flex flex-wrap gap-2">
           {INCIDENT_TYPES.map((type) => (
-            <span key={type} className="rounded-full border border-hairline bg-panel-raised px-3 py-1 text-xs text-ink-muted">
+            <li key={type} className="rounded-md border border-hairline bg-panel-raised px-2.5 py-1 text-xs text-ink-muted">
               {type.replace(/_/g, " ")}
-            </span>
+            </li>
           ))}
-        </div>
+        </ul>
       </Panel>
     </div>
   );
@@ -73,12 +79,11 @@ export default function AdminSettings() {
 
 function ConfigRow({ icon: Icon, label, value }) {
   return (
-    <div className="flex items-center gap-3 rounded-md border border-hairline-soft bg-panel-raised px-3.5 py-2.5">
-      <Icon size={15} className="shrink-0 text-ink-faint" />
-      <div>
-        <p className="text-xs text-ink-faint">{label}</p>
-        <p className="font-mono text-xs text-ink">{value}</p>
-      </div>
+    <div className="rounded-md border border-hairline-soft bg-panel-raised px-3.5 py-3">
+      <dt className="flex items-center gap-2 text-xs text-ink-muted">
+        <Icon size={14} aria-hidden="true" className="shrink-0" /> {label}
+      </dt>
+      <dd className="mt-1.5 break-words font-mono text-xs text-ink">{value}</dd>
     </div>
   );
 }

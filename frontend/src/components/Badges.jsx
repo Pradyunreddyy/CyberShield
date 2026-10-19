@@ -1,8 +1,8 @@
 const SEVERITY_STYLES = {
-  critical: "bg-severity-critical/15 text-severity-critical border-severity-critical/30",
-  high: "bg-severity-high/15 text-severity-high border-severity-high/30",
-  medium: "bg-severity-medium/15 text-severity-medium border-severity-medium/30",
-  low: "bg-severity-low/15 text-severity-low border-severity-low/30",
+  critical: "bg-severity-critical/12 text-severity-critical border-severity-critical/30",
+  high: "bg-severity-high/12 text-severity-high border-severity-high/30",
+  medium: "bg-severity-medium/12 text-severity-medium border-severity-medium/30",
+  low: "bg-severity-low/12 text-severity-low border-severity-low/30",
 };
 
 export function SeverityBadge({ severity }) {
@@ -19,15 +19,15 @@ export function SeverityBadge({ severity }) {
 }
 
 const STATUS_STYLES = {
-  open: "bg-state-info/15 text-state-info border-state-info/30",
-  investigating: "bg-severity-medium/15 text-severity-medium border-severity-medium/30",
-  contained: "bg-severity-high/15 text-severity-high border-severity-high/30",
-  resolved: "bg-state-success/15 text-state-success border-state-success/30",
-  closed: "bg-ink-faint/15 text-ink-muted border-ink-faint/30",
-  pending: "bg-ink-faint/15 text-ink-muted border-ink-faint/30",
-  running: "bg-state-info/15 text-state-info border-state-info/30",
-  completed: "bg-state-success/15 text-state-success border-state-success/30",
-  failed: "bg-state-danger/15 text-state-danger border-state-danger/30",
+  open: "bg-state-info/12 text-state-info border-state-info/30",
+  investigating: "bg-severity-medium/12 text-severity-medium border-severity-medium/30",
+  contained: "bg-severity-high/12 text-severity-high border-severity-high/30",
+  resolved: "bg-state-success/12 text-state-success border-state-success/30",
+  closed: "bg-ink-faint/12 text-ink-muted border-ink-faint/30",
+  pending: "bg-ink-faint/12 text-ink-muted border-ink-faint/30",
+  running: "bg-state-info/12 text-state-info border-state-info/30",
+  completed: "bg-state-success/12 text-state-success border-state-success/30",
+  failed: "bg-state-danger/12 text-state-danger border-state-danger/30",
 };
 
 export function StatusBadge({ status }) {
@@ -41,11 +41,11 @@ export function StatusBadge({ status }) {
 }
 
 const RISK_STYLES = {
-  safe: "bg-state-success/15 text-state-success border-state-success/30",
-  low: "bg-severity-low/15 text-severity-low border-severity-low/30",
-  medium: "bg-severity-medium/15 text-severity-medium border-severity-medium/30",
-  high: "bg-severity-high/15 text-severity-high border-severity-high/30",
-  critical: "bg-severity-critical/15 text-severity-critical border-severity-critical/30",
+  safe: "bg-state-success/12 text-state-success border-state-success/30",
+  low: "bg-severity-low/12 text-severity-low border-severity-low/30",
+  medium: "bg-severity-medium/12 text-severity-medium border-severity-medium/30",
+  high: "bg-severity-high/12 text-severity-high border-severity-high/30",
+  critical: "bg-severity-critical/12 text-severity-critical border-severity-critical/30",
 };
 
 export function RiskBadge({ risk }) {

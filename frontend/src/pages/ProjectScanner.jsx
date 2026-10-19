@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { UploadCloud, ScanSearch, FileArchive, Loader2 } from "lucide-react";
-import { Panel, EmptyState, SkeletonRows, ErrorState } from "../components/Primitives";
+import { Link, useNavigate } from "react-router-dom";
+import { UploadCloud, ScanSearch, FileArchive, ShieldCheck } from "lucide-react";
+import { Panel, PageHeader, EmptyState, SkeletonRows, ErrorState } from "../components/Primitives";
 import { RiskBadge, StatusBadge } from "../components/Badges";
-import { Button } from "../components/Form";
 import { scansApi } from "../api/endpoints";
 import { getApiErrorMessage } from "../api/client";
 import { useToast } from "../context/ToastContext";
@@ -12,16 +11,19 @@ import { formatBytes, formatDateTime } from "../utils/formatters";
 export default function ProjectScanner() {
   const navigate = useNavigate();
   const toast = useToast();
-  const fileInputRef = useRef(null);
+  const inputRef = useRef(null);
 
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadingName, setUploadingName] = useState("");
+  const [elapsed, setElapsed] = useState(0);
   const [dragActive, setDragActive] = useState(false);
 
   const loadScans = useCallback(() => {
     setLoading(true);
+    setError("");
     scansApi
       .list()
       .then((res) => setScans(res.data))
@@ -33,13 +35,25 @@ export default function ProjectScanner() {
     loadScans();
   }, [loadScans]);
 
+  // Real elapsed time for the real upload + analysis request.
+  useEffect(() => {
+    if (!uploading) {
+      setElapsed(0);
+      return undefined;
+    }
+    const started = Date.now();
+    const t = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 500);
+    return () => clearInterval(t);
+  }, [uploading]);
+
   async function handleFile(file) {
-    if (!file) return;
+    if (!file || uploading) return;
     if (!file.name.toLowerCase().endsWith(".zip")) {
       toast.error("Only .zip project archives are supported.");
       return;
     }
     setUploading(true);
+    setUploadingName(`${file.name} · ${formatBytes(file.size)}`);
     try {
       const res = await scansApi.upload(file);
       toast.success(`Scan complete — overall risk: ${res.data.overall_risk?.toUpperCase()}.`);
@@ -53,92 +67,110 @@ export default function ProjectScanner() {
 
   return (
     <div className="space-y-6">
-      <Panel title="Upload a Project for Security Analysis">
-        <p className="mb-4 text-sm text-ink-muted">
-          Upload a <span className="font-mono">.zip</span> project archive for safe, static security analysis. Uploaded code is{" "}
-          <strong className="text-ink">never executed</strong> — findings are heuristic and should be reviewed by an analyst.
+      <PageHeader title="Project security analyzer" description="Upload a project archive for static security analysis. Findings can be escalated into incidents." />
+
+      <Panel title="Upload a project">
+        <p className="mb-4 flex items-start gap-2 text-sm text-ink-muted">
+          <ShieldCheck size={15} aria-hidden="true" className="mt-0.5 shrink-0 text-state-success" />
+          <span>
+            Archives are analyzed statically — uploaded code is <strong className="font-medium text-ink">never executed</strong>. Findings are heuristic and should be
+            reviewed by an analyst.
+          </span>
         </p>
-        <div
+
+        {/* A <label> around a visually-hidden (not display:none) input: the zone is
+            keyboard-focusable and Enter/Space opens the file picker. */}
+        <label
           onDragOver={(e) => {
             e.preventDefault();
             setDragActive(true);
           }}
-          onDragLeave={() => setDragActive(false)}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget)) setDragActive(false);
+          }}
           onDrop={(e) => {
             e.preventDefault();
             setDragActive(false);
             handleFile(e.dataTransfer.files?.[0]);
           }}
-          onClick={() => fileInputRef.current?.click()}
-          className={`flex cursor-pointer flex-col items-center justify-center gap-2.5 rounded-lg border-2 border-dashed py-12 transition-colors ${
-            dragActive ? "border-signal bg-signal/5" : "border-hairline hover:border-hairline-soft hover:bg-panel-raised"
-          }`}
+          className={`flex min-h-[176px] flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-10 text-center transition-colors duration-120 focus-within:border-signal focus-within:bg-signal/5 ${
+            uploading ? "cursor-progress" : "cursor-pointer"
+          } ${dragActive ? "border-signal bg-signal/5" : "border-hairline hover:border-ink-faint/50 hover:bg-panel-raised"}`}
         >
-          {uploading ? (
-            <>
-              <Loader2 size={28} className="animate-spin text-signal" />
-              <p className="text-sm text-ink-muted">Analyzing project — this can take a moment...</p>
-            </>
-          ) : (
-            <>
-              <UploadCloud size={28} className="text-ink-faint" />
-              <p className="text-sm text-ink">
-                <span className="font-medium text-signal">Click to upload</span> or drag and drop
-              </p>
-              <p className="text-xs text-ink-faint">ZIP archives only &middot; max 25 MB</p>
-            </>
-          )}
           <input
-            ref={fileInputRef}
+            ref={inputRef}
             type="file"
             accept=".zip"
-            className="hidden"
-            onChange={(e) => handleFile(e.target.files?.[0])}
+            disabled={uploading}
+            className="sr-only"
+            aria-label="Upload a project .zip archive"
+            onChange={(e) => {
+              handleFile(e.target.files?.[0]);
+              e.target.value = ""; // lets the same file be chosen again
+            }}
           />
-        </div>
+          {uploading ? (
+            <div role="status" className="w-full max-w-xs">
+              <p className="text-sm font-medium text-ink">Analyzing project…</p>
+              <p className="mt-0.5 truncate font-mono text-xs text-ink-muted">{uploadingName}</p>
+              <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-hairline">
+                <div className="h-full w-1/3 animate-sweep rounded-full bg-signal" />
+              </div>
+              <p className="tnum mt-2.5 text-xs text-ink-muted">{elapsed}s elapsed</p>
+            </div>
+          ) : (
+            <>
+              <UploadCloud size={28} aria-hidden="true" className={dragActive ? "text-signal" : "text-ink-muted"} />
+              <p className="text-sm text-ink">
+                <span className="font-medium text-signal">Choose a file</span> or drag and drop it here
+              </p>
+              <p className="text-xs text-ink-muted">ZIP archives only · max 25 MB</p>
+            </>
+          )}
+        </label>
       </Panel>
 
-      <Panel title="Scan History">
+      <Panel title="Scan history">
         {error ? (
-          <ErrorState message={error} />
+          <ErrorState title="Unable to load scan history" message="Please check your connection and try again." onRetry={loadScans} />
         ) : loading ? (
           <SkeletonRows rows={5} cols={5} />
         ) : scans.length === 0 ? (
           <EmptyState icon={ScanSearch} title="No scans yet" description="Upload a project archive above to run your first security analysis." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+          <div className="relative overflow-x-auto">
+            <table className="data-table text-left">
               <thead>
-                <tr className="border-b border-hairline text-xs uppercase tracking-wide text-ink-faint">
-                  <th className="py-2 pr-4 font-medium">File</th>
-                  <th className="py-2 pr-4 font-medium">Status</th>
-                  <th className="py-2 pr-4 font-medium">Risk</th>
-                  <th className="py-2 pr-4 font-medium">Files Scanned</th>
-                  <th className="py-2 pr-4 font-medium">Suspicious Files</th>
-                  <th className="py-2 pr-4 font-medium">Size</th>
-                  <th className="py-2 pr-4 font-medium">Uploaded</th>
+                <tr>
+                  <th>File</th>
+                  <th>Status</th>
+                  <th>Risk</th>
+                  <th>Files scanned</th>
+                  <th>Suspicious files</th>
+                  <th>Size</th>
+                  <th>Uploaded</th>
                 </tr>
               </thead>
               <tbody>
                 {scans.map((scan) => (
-                  <tr
-                    key={scan.id}
-                    onClick={() => navigate(`/project-scanner/${scan.id}`)}
-                    className="cursor-pointer border-b border-hairline-soft hover:bg-panel-raised"
-                  >
-                    <td className="py-2.5 pr-4 text-ink">
-                      <div className="flex items-center gap-2">
-                        <FileArchive size={14} className="text-ink-faint" /> {scan.original_filename}
-                      </div>
+                  <tr key={scan.id} data-interactive="true" onClick={() => navigate(`/project-scanner/${scan.id}`)}>
+                    <td className="text-ink">
+                      <Link
+                        to={`/project-scanner/${scan.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-2 hover:text-signal hover:underline"
+                      >
+                        <FileArchive size={14} aria-hidden="true" className="shrink-0 text-ink-muted" /> {scan.original_filename}
+                      </Link>
                     </td>
-                    <td className="py-2.5 pr-4">
+                    <td>
                       <StatusBadge status={scan.status} />
                     </td>
-                    <td className="py-2.5 pr-4">{scan.overall_risk ? <RiskBadge risk={scan.overall_risk} /> : "-"}</td>
-                    <td className="py-2.5 pr-4 font-mono text-ink-muted">{scan.files_scanned}</td>
-                    <td className="py-2.5 pr-4 font-mono text-ink-muted">{scan.suspicious_file_count}</td>
-                    <td className="py-2.5 pr-4 text-ink-muted">{formatBytes(scan.file_size_bytes)}</td>
-                    <td className="py-2.5 pr-4 font-mono text-xs text-ink-faint">{formatDateTime(scan.created_at)}</td>
+                    <td>{scan.overall_risk ? <RiskBadge risk={scan.overall_risk} /> : "—"}</td>
+                    <td className="font-mono text-ink-muted">{scan.files_scanned}</td>
+                    <td className="font-mono text-ink-muted">{scan.suspicious_file_count}</td>
+                    <td className="whitespace-nowrap text-ink-muted">{formatBytes(scan.file_size_bytes)}</td>
+                    <td className="whitespace-nowrap font-mono text-xs text-ink-muted">{formatDateTime(scan.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

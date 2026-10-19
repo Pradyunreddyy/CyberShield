@@ -2,18 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-* { box-sizing: border-box; }
-html, body, #root { height: 100%; }
-body { -webkit-font-smoothing: antialiased; }
-::selection { background-color: rgba(91, 140, 255, 0.35); }
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background-color: #232833; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background-color: #2d3441; }
-@keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
-.animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
-@media (prefers-reduced-motion: no-preference) {
-  @keyframes fade-in-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-  .animate-fade-in-up { animation: fade-in-up 0.35s ease-out both; }
+@layer base {
+  html {
+    color-scheme: dark; /* native controls, scrollbars and date pickers render dark */
+    height: 100%;
+  }
+  body {
+    height: 100%;
+    @apply bg-void font-sans text-sm text-ink;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  #root { height: 100%; }
+  * { box-sizing: border-box; }
+  ::selection { background-color: rgba(91, 140, 255, 0.35); }
+
+  h1, h2, h3 { text-wrap: balance; }
+  p { text-wrap: pretty; }
+
+  /* One focus treatment everywhere: keyboard only, high-contrast, offset. */
+  :focus-visible {
+    outline: 2px solid #7fa4ff;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  :focus:not(:focus-visible) { outline: none; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background-color: #232833; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background-color: #2d3441; }
 }
-a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #5b8cff; outline-offset: 2px; }
+
+@layer components {
+  /* Numbers in a SOC are compared down a column; keep digits the same width. */
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* Data tables: one definition instead of per-page th/td class soup. */
+  .data-table { @apply w-full text-sm tnum; }
+  .data-table thead th {
+    @apply whitespace-nowrap pb-2 pr-4 text-left text-xs font-medium text-ink-muted;
+  }
+  .data-table tbody td { @apply py-2.5 pr-4 align-middle; }
+  .data-table tbody tr { @apply border-t border-hairline-soft transition-colors duration-120; }
+  .data-table tbody tr[data-interactive="true"] { @apply cursor-pointer hover:bg-white/[0.025]; }
+  .data-table tbody tr[data-interactive="true"]:focus-visible { @apply bg-white/[0.04]; }
+
+  /* Small label used above grouped content (sidebar sections, form groups). */
+  .eyebrow { @apply text-2xs font-medium uppercase tracking-[0.08em] text-ink-faint; }
+}
+
+/* Legacy names kept so existing markup keeps working. */
+.animate-pulse-dot { animation: pulse-soft 2s ease-in-out infinite; }
+.animate-fade-in-up { animation: rise 280ms cubic-bezier(0.25, 1, 0.5, 1) both; }
+
+/* Staggered entrance: set style={{ "--i": n }} on children. Capped so a long
+   list never makes the user wait for decoration. */
+.stagger > * { animation-delay: calc(min(var(--i, 0), 8) * 45ms); }
+
+/* Exit states for elements kept mounted briefly by useExitTransition(). */
+[data-state="closed"].exit-pop { animation: pop-out 140ms cubic-bezier(0.25, 1, 0.5, 1) both; }
+[data-state="closed"].exit-slide { animation: slide-out 160ms cubic-bezier(0.25, 1, 0.5, 1) both; }
+[data-state="closed"].exit-fade { animation: fade-out 140ms cubic-bezier(0.25, 1, 0.5, 1) both; }
+
+/* Reduced motion: keep every state change (it still happens, instantly or as
+   a short opacity fade) but remove translation/scale and all looping. The
+   small loading spinner is retained: it is feedback, not decoration. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+  .animate-rise, .animate-pop, .animate-slide-in, .animate-fade-in-up { animation: fade 120ms linear both !important; }
+  .exit-pop[data-state="closed"], .exit-slide[data-state="closed"] { animation: fade-out 100ms linear both !important; }
+  .animate-pulse-soft, .animate-pulse-dot, .animate-pulse, .animate-sweep { animation: none !important; }
+  .transition-transform, .transition-all { transition-property: color, background-color, border-color, opacity !important; }
+}
