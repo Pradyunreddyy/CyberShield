@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthLayout } from "../layouts/AuthLayout";
-import { Button, Input } from "../components/Form";
+import { Button, Input, PasswordInput } from "../components/Form";
+import { ErrorState } from "../components/Primitives";
 import { useAuth } from "../hooks/useAuth";
 import { getApiErrorMessage } from "../api/client";
 
@@ -31,26 +32,27 @@ export default function Register() {
   return (
     <AuthLayout title="Create a developer account" subtitle="New accounts start with developer access; an admin can grant analyst or admin roles.">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <p className="rounded-md border border-state-danger/30 bg-state-danger/10 px-3 py-2 text-sm text-severity-critical">{error}</p>}
-        <Input label="Full name" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Dana Developer" />
-        <Input label="Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
-        <Input
+        {error && <ErrorState message={error} />}
+        <Input label="Full name" required autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Dana Developer" />
+        <Input label="Email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+        <PasswordInput
           label="Password"
-          type="password"
+          name="password"
           required
           minLength={8}
+          autoComplete="new-password"
+          hint="At least 8 characters."
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="At least 8 characters"
         />
-        <Button type="submit" className="w-full" loading={loading}>
+        <Button type="submit" className="w-full" size="lg" loading={loading}>
           Create account
         </Button>
       </form>
-
       <p className="mt-6 text-center text-sm text-ink-muted">
         Already have an account?{" "}
-        <Link to="/login" className="font-medium text-signal hover:text-signal-bright">
+        <Link to="/login" className="rounded font-medium text-signal hover:text-signal-bright">
           Log in
         </Link>
       </p>

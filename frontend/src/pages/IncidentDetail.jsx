@@ -1,20 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  Bot,
-  Clock,
-  FileText,
-  Loader2,
-  Plus,
-  ShieldAlert,
-  Sparkles,
-  Zap,
-} from "lucide-react";
-import { Panel, SkeletonBlock, ErrorState } from "../components/Primitives";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, Bot, Check, Clock, FileText, Info, Plus, ShieldAlert, Sparkles, Zap } from "lucide-react";
+import { Panel, SkeletonBlock, ErrorState, EmptyState } from "../components/Primitives";
 import { SeverityBadge, StatusBadge } from "../components/Badges";
 import { Button, Input, Select, Textarea } from "../components/Form";
-import { Modal } from "../components/Modal";
 import { incidentsApi, aiApi } from "../api/endpoints";
 import { getApiErrorMessage } from "../api/client";
 import { useAuth } from "../hooks/useAuth";
@@ -22,90 +11,195 @@ import { useToast } from "../context/ToastContext";
 import { formatDateTime, titleCase } from "../utils/formatters";
 
 const TABS = ["Overview", "Investigation", "Timeline", "Response Actions", "AI Analyzer"];
+const WORKFLOW = ["open", "investigating", "contained", "resolved", "closed"];
 
 export default function IncidentDetail() {
   const { incidentId } = useParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const toast = useToast();
   const canManage = user.role === "analyst" || user.role === "admin";
 
   const [incident, setIncident] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("Overview");
+  const loadedRef = useRef(false);
 
+  // The first load shows a skeleton. Later refreshes (after a status change,
+  // a new note, ...) update in place: swapping the page for a skeleton would
+  // unmount the tabs and discard anything the analyst had typed or generated.
   const load = useCallback(() => {
-    setLoading(true);
     incidentsApi
       .get(incidentId)
-      .then((res) => setIncident(res.data))
-      .catch((err) => setError(getApiErrorMessage(err, "Could not load this incident.")))
-      .finally(() => setLoading(false));
+      .then((res) => {
+        setIncident(res.data);
+        setError("");
+        loadedRef.current = true;
+      })
+      .catch((err) => {
+        const message = getApiErrorMessage(err, "Could not load this incident.");
+        if (loadedRef.current) toast.error(message);
+        else setError(message);
+      })
+      .finally(() => setInitialLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incidentId]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  if (loading) {
+  const retry = () => {
+    setError("");
+    setInitialLoading(true);
+    load();
+  };
+
+  const back = (
+    <Link to="/incidents" className="mb-4 inline-flex items-center gap-1.5 rounded text-sm text-ink-muted transition-colors duration-120 hover:text-ink lg:hidden">
+      <ArrowLeft size={14} aria-hidden="true" /> Back to incidents
+    </Link>
+  );
+
+  if (initialLoading) {
     return (
-      <div className="space-y-4">
-        <SkeletonBlock className="h-24" />
-        <SkeletonBlock className="h-96" />
+      <div className="space-y-4" role="status" aria-label="Loading incident">
+        <SkeletonBlock className="h-40" />
+        <SkeletonBlock className="h-10" />
+        <SkeletonBlock className="h-80" />
       </div>
     );
   }
-  if (error) return <ErrorState message={error} />;
+  if (error) {
+    return (
+      <>
+        {back}
+        <ErrorState title="Unable to load incident" message={error} onRetry={retry} />
+      </>
+    );
+  }
   if (!incident) return null;
 
-  return (
-    <div className="space-y-4">
-      <button onClick={() => navigate("/incidents")} className="flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink">
-        <ArrowLeft size={14} /> Back to incidents
-      </button>
+  const counts = {
+    Investigation: incident.notes.length,
+    Timeline: incident.timeline_events.length,
+    "Response Actions": incident.actions.length,
+  };
 
-      <Panel>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5">
+  return (
+    <div className="space-y-5">
+      {back}
+
+      <Panel bodyClassName="p-5">
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-mono text-sm text-signal">{incident.code}</span>
               <SeverityBadge severity={incident.severity} />
               <StatusBadge status={incident.status} />
             </div>
-            <h2 className="mt-2 text-lg font-semibold text-ink">{incident.title}</h2>
+            <h1 className="mt-2 text-xl font-semibold text-ink">{incident.title}</h1>
             <p className="mt-1 text-sm text-ink-muted">
-              Reported by {incident.reporter?.full_name || "Unknown"} &middot; {formatDateTime(incident.created_at)}
+              Reported by {incident.reporter?.full_name || "Unknown"} · <span className="tnum">{formatDateTime(incident.created_at)}</span>
             </p>
           </div>
           {canManage && <IncidentControls incident={incident} onUpdated={load} />}
         </div>
+        <StatusProgress status={incident.status} />
       </Panel>
 
-      <div className="flex gap-1 border-b border-hairline">
-        {TABS.map((tab) => (
+      <Tabs tabs={TABS} counts={counts} active={activeTab} onChange={setActiveTab} />
+
+      <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} tabIndex={0} className="focus:outline-none focus-visible:outline-2">
+        {activeTab === "Overview" && <OverviewTab incident={incident} />}
+        {activeTab === "Investigation" && <InvestigationTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
+        {activeTab === "Timeline" && <TimelineTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
+        {activeTab === "Response Actions" && <ActionsTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
+        {activeTab === "AI Analyzer" && canManage && <AIAnalyzerTab incident={incident} />}
+        {activeTab === "AI Analyzer" && !canManage && (
+          <Panel>
+            <p className="text-sm text-ink-muted">Only security analysts and administrators can run the AI Incident Analyzer.</p>
+          </Panel>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Where the incident sits in the real status model. Purely derived from
+// `incident.status`; nothing here is a separate piece of state.
+function StatusProgress({ status }) {
+  const current = Math.max(0, WORKFLOW.indexOf(status));
+  const done = status === "resolved" || status === "closed";
+  return (
+    <ol aria-label="Incident progress" className="mt-5 flex items-center border-t border-hairline-soft pt-4">
+      {WORKFLOW.map((step, i) => {
+        const reached = i <= current;
+        const isCurrent = i === current;
+        const tone = reached ? (done ? "bg-state-success" : "bg-signal") : "bg-hairline";
+        return (
+          <li key={step} aria-current={isCurrent ? "step" : undefined} className={`flex items-center ${i < WORKFLOW.length - 1 ? "flex-1" : ""}`}>
+            <span className="flex items-center gap-2">
+              <span
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors duration-180 ${tone} ${
+                  isCurrent ? "ring-4 ring-signal/20" : ""
+                } ${isCurrent && done ? "!ring-state-success/20" : ""}`}
+              >
+                {reached && !isCurrent && <Check size={11} aria-hidden="true" className="text-void" />}
+                {isCurrent && <span className="h-1.5 w-1.5 rounded-full bg-void" />}
+              </span>
+              <span className={`text-xs ${isCurrent ? "font-medium text-ink" : reached ? "text-ink-muted" : "text-ink-faint"} ${isCurrent ? "" : "hidden sm:inline"}`}>
+                {titleCase(step)}
+              </span>
+            </span>
+            {i < WORKFLOW.length - 1 && <span aria-hidden="true" className={`mx-3 h-px flex-1 transition-colors duration-180 ${i < current ? (done ? "bg-state-success/60" : "bg-signal/60") : "bg-hairline"}`} />}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+// WAI-ARIA tabs: arrow keys move between tabs, Home/End jump.
+function Tabs({ tabs, counts, active, onChange }) {
+  const refs = useRef({});
+  function onKeyDown(e) {
+    const i = tabs.indexOf(active);
+    let next = null;
+    if (e.key === "ArrowRight") next = tabs[(i + 1) % tabs.length];
+    else if (e.key === "ArrowLeft") next = tabs[(i - 1 + tabs.length) % tabs.length];
+    else if (e.key === "Home") next = tabs[0];
+    else if (e.key === "End") next = tabs[tabs.length - 1];
+    if (next) {
+      e.preventDefault();
+      onChange(next);
+      refs.current[next]?.focus();
+    }
+  }
+  return (
+    <div role="tablist" aria-label="Incident sections" onKeyDown={onKeyDown} className="flex gap-1 overflow-x-auto border-b border-hairline">
+      {tabs.map((tab) => {
+        const selected = active === tab;
+        return (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-3.5 py-2.5 text-sm font-medium transition-colors ${
-              activeTab === tab ? "border-b-2 border-signal text-ink" : "text-ink-muted hover:text-ink"
+            ref={(el) => (refs.current[tab] = el)}
+            type="button"
+            role="tab"
+            id={`tab-${tab}`}
+            aria-selected={selected}
+            aria-controls={`panel-${tab}`}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onChange(tab)}
+            className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors duration-120 ${
+              selected ? "border-signal text-ink" : "border-transparent text-ink-muted hover:text-ink"
             }`}
           >
             {tab}
+            {counts[tab] > 0 && <span className="tnum rounded bg-panel-raised px-1.5 py-px font-mono text-2xs text-ink-muted">{counts[tab]}</span>}
           </button>
-        ))}
-      </div>
-
-      {activeTab === "Overview" && <OverviewTab incident={incident} />}
-      {activeTab === "Investigation" && <InvestigationTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
-      {activeTab === "Timeline" && <TimelineTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
-      {activeTab === "Response Actions" && <ActionsTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
-      {activeTab === "AI Analyzer" && canManage && <AIAnalyzerTab incident={incident} toast={toast} />}
-      {activeTab === "AI Analyzer" && !canManage && (
-        <Panel>
-          <p className="text-sm text-ink-muted">Only security analysts and administrators can run the AI Incident Analyzer.</p>
-        </Panel>
-      )}
+        );
+      })}
     </div>
   );
 }
@@ -136,25 +230,26 @@ function IncidentControls({ incident, onUpdated }) {
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <Select value={incident.status} onChange={(e) => updateField("status", e.target.value)} disabled={updating} className="w-40">
-        <option value="open">Open</option>
-        <option value="investigating">Investigating</option>
-        <option value="contained">Contained</option>
-        <option value="resolved">Resolved</option>
-        <option value="closed">Closed</option>
+    <div className="flex flex-wrap gap-2.5">
+      <Select label="Status" wrapperClassName="w-40" value={incident.status} onChange={(e) => updateField("status", e.target.value)} disabled={updating}>
+        {WORKFLOW.map((s) => (
+          <option key={s} value={s}>
+            {titleCase(s)}
+          </option>
+        ))}
       </Select>
-      <Select value={incident.severity} onChange={(e) => updateField("severity", e.target.value)} disabled={updating} className="w-32">
+      <Select label="Severity" wrapperClassName="w-32" value={incident.severity} onChange={(e) => updateField("severity", e.target.value)} disabled={updating}>
         <option value="low">Low</option>
         <option value="medium">Medium</option>
         <option value="high">High</option>
         <option value="critical">Critical</option>
       </Select>
       <Select
+        label="Assigned analyst"
+        wrapperClassName="w-48"
         value={incident.assigned_analyst?.id || ""}
         onChange={(e) => updateField("assigned_analyst_id", e.target.value || null)}
         disabled={updating}
-        className="w-48"
       >
         <option value="">Unassigned</option>
         {analysts.map((a) => (
@@ -171,28 +266,28 @@ function OverviewTab({ incident }) {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <Panel title="Description" className="lg:col-span-2">
-        <p className="whitespace-pre-wrap text-sm text-ink-muted">{incident.description || "No description provided."}</p>
+        <p className="max-w-prose whitespace-pre-wrap text-sm leading-relaxed text-ink-muted">{incident.description || "No description provided."}</p>
       </Panel>
       <Panel title="Details">
-        <dl className="space-y-3 text-sm">
+        <dl className="text-sm">
           <Detail label="Type" value={titleCase(incident.incident_type)} />
           <Detail label="Source" value={titleCase(incident.source)} />
-          <Detail label="Affected Asset" value={incident.affected_asset || "-"} mono />
-          <Detail label="Source IP" value={incident.source_ip || "-"} mono />
-          <Detail label="Target IP" value={incident.target_ip || "-"} mono />
-          <Detail label="Assigned Analyst" value={incident.assigned_analyst?.full_name || "Unassigned"} />
-          <Detail label="Last Updated" value={formatDateTime(incident.updated_at)} mono />
+          <Detail label="Affected asset" value={incident.affected_asset || "—"} mono />
+          <Detail label="Source IP" value={incident.source_ip || "—"} mono />
+          <Detail label="Target IP" value={incident.target_ip || "—"} mono />
+          <Detail label="Assigned analyst" value={incident.assigned_analyst?.full_name || "Unassigned"} />
+          <Detail label="Last updated" value={formatDateTime(incident.updated_at)} mono last />
         </dl>
       </Panel>
     </div>
   );
 }
 
-function Detail({ label, value, mono }) {
+function Detail({ label, value, mono, last }) {
   return (
-    <div className="flex items-center justify-between border-b border-hairline-soft pb-2">
-      <dt className="text-ink-faint">{label}</dt>
-      <dd className={`text-ink ${mono ? "font-mono text-xs" : ""}`}>{value}</dd>
+    <div className={`flex items-baseline justify-between gap-4 py-2.5 ${last ? "" : "border-b border-hairline-soft"}`}>
+      <dt className="shrink-0 text-ink-muted">{label}</dt>
+      <dd className={`min-w-0 break-words text-right text-ink ${mono ? "font-mono text-xs" : ""}`}>{value}</dd>
     </div>
   );
 }
@@ -218,32 +313,39 @@ function InvestigationTab({ incident, canManage, onUpdated, toast }) {
   }
 
   return (
-    <Panel title="Investigation Notes">
+    <Panel title="Investigation notes">
       {canManage && (
-        <form onSubmit={handleAddNote} className="mb-4 flex gap-2">
-          <Textarea rows={2} className="flex-1" placeholder="Add findings, evidence metadata, or analyst comments..." value={content} onChange={(e) => setContent(e.target.value)} />
+        <form onSubmit={handleAddNote} className="mb-5 flex gap-2">
+          <Textarea
+            aria-label="New investigation note"
+            wrapperClassName="flex-1"
+            rows={2}
+            placeholder="Add findings, evidence metadata, or analyst comments…"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+          />
           <Button type="submit" loading={submitting} className="self-end">
-            <Plus size={14} /> Add
+            <Plus size={14} aria-hidden="true" /> Add
           </Button>
         </form>
       )}
 
       {incident.notes.length === 0 ? (
-        <p className="py-6 text-center text-sm text-ink-muted">No investigation notes yet.</p>
+        <EmptyState icon={FileText} title="No investigation notes yet" description="Record findings and evidence as the investigation progresses." />
       ) : (
-        <div className="space-y-3">
+        <ul className="space-y-3">
           {incident.notes
             .slice()
             .reverse()
             .map((note) => (
-              <div key={note.id} className="rounded-md border border-hairline-soft bg-panel-raised p-3">
-                <div className="mb-1.5 flex items-center gap-2 text-xs text-ink-faint">
-                  <FileText size={12} /> {note.author?.full_name || "System"} &middot; {formatDateTime(note.created_at)}
+              <li key={note.id} className="rounded-md border border-hairline-soft bg-panel-raised p-3.5">
+                <div className="mb-1.5 flex items-center gap-2 text-xs text-ink-muted">
+                  <FileText size={12} aria-hidden="true" /> {note.author?.full_name || "System"} · <span className="tnum">{formatDateTime(note.created_at)}</span>
                 </div>
                 <p className="whitespace-pre-wrap text-sm text-ink">{note.content}</p>
-              </div>
+              </li>
             ))}
-        </div>
+        </ul>
       )}
     </Panel>
   );
@@ -270,28 +372,34 @@ function TimelineTab({ incident, canManage, onUpdated, toast }) {
   }
 
   return (
-    <Panel title="Incident Timeline">
+    <Panel title="Incident timeline">
       {canManage && (
-        <form onSubmit={handleAdd} className="mb-4 flex gap-2">
-          <Input className="flex-1" placeholder="e.g. Threat contained by isolating host" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <form onSubmit={handleAdd} className="mb-5 flex gap-2">
+          <Input
+            aria-label="New timeline event"
+            wrapperClassName="flex-1"
+            placeholder="e.g. Threat contained by isolating host"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
           <Button type="submit" loading={submitting}>
-            <Plus size={14} /> Add
+            <Plus size={14} aria-hidden="true" /> Add
           </Button>
         </form>
       )}
 
       {incident.timeline_events.length === 0 ? (
-        <p className="py-6 text-center text-sm text-ink-muted">No timeline events recorded yet.</p>
+        <EmptyState icon={Clock} title="No timeline events yet" description="Add key moments — detection, containment, remediation — as they happen." />
       ) : (
-        <ol className="relative ml-2.5 space-y-5 border-l border-hairline pl-5">
-          {incident.timeline_events.map((event) => (
-            <li key={event.id} className="relative">
-              <span className="absolute -left-[26px] top-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-signal ring-4 ring-void" />
-              <div className="flex items-center gap-2 font-mono text-xs text-ink-faint">
-                <Clock size={11} /> {formatDateTime(event.event_time)}
+        <ol className="stagger relative ml-2.5 space-y-5 border-l border-hairline pl-6">
+          {incident.timeline_events.map((event, i) => (
+            <li key={event.id} style={{ "--i": i }} className="relative animate-rise">
+              <span aria-hidden="true" className="absolute -left-[31px] top-1 h-2.5 w-2.5 rounded-full bg-signal ring-4 ring-panel" />
+              <div className="tnum flex items-center gap-2 font-mono text-xs text-ink-muted">
+                <Clock size={11} aria-hidden="true" /> {formatDateTime(event.event_time)}
               </div>
               <p className="mt-0.5 text-sm text-ink">{event.description}</p>
-              {event.author && <p className="text-xs text-ink-faint">by {event.author.full_name}</p>}
+              {event.author && <p className="text-xs text-ink-muted">by {event.author.full_name}</p>}
             </li>
           ))}
         </ol>
@@ -324,57 +432,98 @@ function ActionsTab({ incident, canManage, onUpdated, toast }) {
   }
 
   return (
-    <Panel title="Response Actions">
+    <Panel title="Response actions">
       {canManage && (
-        <form onSubmit={handleAdd} className="mb-4 flex flex-wrap gap-2">
-          <Input list="action-presets" className="flex-1 min-w-[200px]" placeholder="Action taken" value={action} onChange={(e) => setAction(e.target.value)} />
+        <form onSubmit={handleAdd} className="mb-5 flex flex-wrap items-end gap-2">
+          <Input
+            aria-label="Action taken"
+            list="action-presets"
+            wrapperClassName="min-w-[200px] flex-1"
+            placeholder="Action taken"
+            value={action}
+            onChange={(e) => setAction(e.target.value)}
+          />
           <datalist id="action-presets">
             {ACTION_PRESETS.map((p) => (
               <option key={p} value={p} />
             ))}
           </datalist>
-          <Select value={result} onChange={(e) => setResult(e.target.value)} className="w-36">
+          <Select aria-label="Action result" wrapperClassName="w-36" value={result} onChange={(e) => setResult(e.target.value)}>
             <option value="completed">Completed</option>
             <option value="pending">Pending</option>
             <option value="failed">Failed</option>
           </Select>
           <Button type="submit" loading={submitting}>
-            <Zap size={14} /> Record
+            <Zap size={14} aria-hidden="true" /> Record
           </Button>
         </form>
       )}
 
       {incident.actions.length === 0 ? (
-        <p className="py-6 text-center text-sm text-ink-muted">No response actions recorded yet.</p>
+        <EmptyState icon={Zap} title="No response actions recorded" description="Log containment and remediation steps so the response is auditable." />
       ) : (
-        <div className="space-y-2">
+        <ul className="space-y-2">
           {incident.actions.map((a) => (
-            <div key={a.id} className="flex items-center justify-between rounded-md border border-hairline-soft bg-panel-raised px-3.5 py-2.5">
-              <div>
+            <li key={a.id} className="flex items-center justify-between gap-3 rounded-md border border-hairline-soft bg-panel-raised px-3.5 py-3">
+              <div className="min-w-0">
                 <p className="text-sm text-ink">{a.action}</p>
-                <p className="text-xs text-ink-faint">
-                  by {a.performed_by?.full_name || "System"} &middot; {formatDateTime(a.created_at)}
+                <p className="text-xs text-ink-muted">
+                  by {a.performed_by?.full_name || "System"} · <span className="tnum">{formatDateTime(a.created_at)}</span>
                 </p>
               </div>
               <StatusBadge status={a.result} />
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </Panel>
   );
 }
 
-function AIAnalyzerTab({ incident, toast }) {
+function AiSection({ title, children }) {
+  return (
+    <section>
+      <h3 className="mb-2 text-xs font-medium text-ink-muted">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function NumberedList({ items }) {
+  return (
+    <ol className="space-y-2">
+      {items.map((s, idx) => (
+        <li key={idx} className="flex gap-3 text-sm text-ink">
+          <span className="tnum mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-well font-mono text-2xs text-ink-muted ring-1 ring-hairline">{idx + 1}</span>
+          <span>{s}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function AIAnalyzerTab({ incident }) {
   const [description, setDescription] = useState(incident.description || "");
   const [logs, setLogs] = useState("");
   const [indicators, setIndicators] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [elapsed, setElapsed] = useState(0);
+
+  // Real elapsed time of the real request. No invented "phases".
+  useEffect(() => {
+    if (!loading) {
+      setElapsed(0);
+      return undefined;
+    }
+    const started = Date.now();
+    const t = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 500);
+    return () => clearInterval(t);
+  }, [loading]);
 
   async function handleAnalyze(e) {
-    e.preventDefault();
+    e?.preventDefault();
     setError("");
     setLoading(true);
     setResult(null);
@@ -389,86 +538,102 @@ function AIAnalyzerTab({ incident, toast }) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <Panel title="Analysis Input">
-        <form onSubmit={handleAnalyze} className="space-y-3">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+      <Panel title="Analysis input" description="What the analyzer is given" className="lg:col-span-2">
+        <form onSubmit={handleAnalyze} className="space-y-3.5">
           <Textarea label="Incident description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} />
-          <Textarea label="Logs / text (optional)" rows={4} value={logs} onChange={(e) => setLogs(e.target.value)} placeholder="Paste relevant log lines here..." />
-          <Textarea label="Known indicators (optional)" rows={2} value={indicators} onChange={(e) => setIndicators(e.target.value)} placeholder="IPs, hashes, domains..." />
+          <Textarea label="Logs / text (optional)" rows={4} value={logs} onChange={(e) => setLogs(e.target.value)} placeholder="Paste relevant log lines here…" className="font-mono text-xs" />
+          <Textarea label="Known indicators (optional)" rows={2} value={indicators} onChange={(e) => setIndicators(e.target.value)} placeholder="IPs, hashes, domains…" className="font-mono text-xs" />
           <Button type="submit" loading={loading} className="w-full">
-            <Sparkles size={15} /> Run AI Incident Analyzer
+            <Sparkles size={15} aria-hidden="true" /> Run AI incident analyzer
           </Button>
         </form>
       </Panel>
 
-      <Panel title="AI Assessment">
-        {error && <ErrorState message={error} />}
-        {loading && (
-          <div className="flex flex-col items-center justify-center gap-2 py-12 text-ink-muted">
-            <Loader2 size={20} className="animate-spin" />
-            <p className="text-sm">Analyzing incident data...</p>
-          </div>
-        )}
-        {!loading && !result && !error && (
-          <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-ink-muted">
-            <Bot size={24} className="text-ink-faint" />
-            <p className="text-sm">Run the analyzer to get an AI-assisted risk assessment.</p>
-          </div>
-        )}
-        {result && (
-          <div className="space-y-4">
-            {result.degraded && (
-              <div className="flex items-center gap-2 rounded-md border border-severity-medium/30 bg-severity-medium/10 px-3 py-2 text-xs text-severity-medium">
-                <ShieldAlert size={13} /> AI provider unavailable — showing a rule-based fallback assessment.
+      <Panel title="AI assessment" className="lg:col-span-3">
+        <div aria-live="polite">
+          {error && <ErrorState title="Analysis failed" message={error} onRetry={handleAnalyze} retryLabel="Run again" />}
+
+          {loading && (
+            <div className="py-10 text-center" role="status">
+              <p className="text-sm font-medium text-ink">Analyzing incident…</p>
+              <div className="mx-auto mt-4 h-1 w-56 overflow-hidden rounded-full bg-hairline">
+                <div className="h-full w-1/3 animate-sweep rounded-full bg-signal" />
               </div>
-            )}
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-xs uppercase tracking-wide text-ink-faint">Risk Level</span>
-              <SeverityBadge severity={result.risk_level} />
+              <p className="tnum mt-3 text-xs text-ink-muted">{elapsed}s elapsed</p>
             </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Possible Type</p>
-              <p className="text-sm text-ink">{result.possible_type}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Summary</p>
-              <p className="text-sm text-ink-muted">{result.summary}</p>
-            </div>
-            {result.possible_attack_technique && (
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Possible Attack Technique</p>
-                <p className="text-sm text-ink-muted">{result.possible_attack_technique}</p>
+          )}
+
+          {!loading && !result && !error && (
+            <EmptyState icon={Bot} title="No assessment yet" description="Run the analyzer to get a risk assessment, likely attack technique, and recommended next steps." />
+          )}
+
+          {result && (
+            <div className="animate-fade space-y-5">
+              {result.degraded ? (
+                <div role="status" className="flex items-start gap-2.5 rounded-md border border-severity-medium/30 bg-severity-medium/10 px-3.5 py-3 text-sm text-severity-medium">
+                  <ShieldAlert size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+                  <p>
+                    <span className="font-medium">Rule-based fallback.</span> The AI provider was unavailable, so this assessment comes from fixed rules, not an AI model.
+                  </p>
+                </div>
+              ) : (
+                <p className="inline-flex items-center gap-1.5 rounded-md border border-signal/25 bg-signal/10 px-2 py-1 text-xs font-medium text-signal">
+                  <Sparkles size={12} aria-hidden="true" /> AI-generated assessment
+                </p>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 rounded-md border border-hairline bg-well p-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs text-ink-muted">Risk level</p>
+                  <div className="mt-1.5">
+                    <SeverityBadge severity={result.risk_level} />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-ink-muted">Possible type</p>
+                  <p className="mt-1 text-sm font-medium text-ink">{titleCase(result.possible_type)}</p>
+                </div>
               </div>
-            )}
-            {result.suspicious_indicators?.length > 0 && (
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Suspicious Indicators</p>
-                <ul className="mt-1 list-inside list-disc text-sm text-ink-muted">
-                  {result.suspicious_indicators.map((i, idx) => (
-                    <li key={idx}>{i}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Recommended Investigation Steps</p>
-              <ol className="mt-1 list-inside list-decimal space-y-0.5 text-sm text-ink-muted">
-                {result.recommended_investigation_steps.map((s, idx) => (
-                  <li key={idx}>{s}</li>
-                ))}
-              </ol>
+
+              <AiSection title="Summary">
+                <p className="max-w-prose text-sm leading-relaxed text-ink">{result.summary}</p>
+              </AiSection>
+
+              {result.possible_attack_technique && (
+                <AiSection title="Possible attack technique">
+                  <p className="text-sm text-ink">{result.possible_attack_technique}</p>
+                </AiSection>
+              )}
+
+              {result.suspicious_indicators?.length > 0 && (
+                <AiSection title="Suspicious indicators">
+                  <ul className="space-y-1.5">
+                    {result.suspicious_indicators.map((i, idx) => (
+                      <li key={idx} className="flex gap-2.5 text-sm text-ink">
+                        <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-severity-high" />
+                        <span>{i}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </AiSection>
+              )}
+
+              <AiSection title="Recommended investigation steps">
+                <NumberedList items={result.recommended_investigation_steps} />
+              </AiSection>
+
+              <AiSection title="Recommended response actions">
+                <NumberedList items={result.recommended_response_actions} />
+              </AiSection>
+
+              <p className="flex items-start gap-2 border-t border-hairline-soft pt-4 text-xs text-ink-muted">
+                <Info size={13} aria-hidden="true" className="mt-px shrink-0" />
+                {result.disclaimer}
+              </p>
             </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Recommended Response Actions</p>
-              <ol className="mt-1 list-inside list-decimal space-y-0.5 text-sm text-ink-muted">
-                {result.recommended_response_actions.map((s, idx) => (
-                  <li key={idx}>{s}</li>
-                ))}
-              </ol>
-            </div>
-            <p className="border-t border-hairline-soft pt-3 text-xs italic text-ink-faint">{result.disclaimer}</p>
-          </div>
-        )}
+          )}
+        </div>
       </Panel>
     </div>
   );
