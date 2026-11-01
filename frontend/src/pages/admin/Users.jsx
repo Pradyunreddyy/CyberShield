@@ -9,7 +9,6 @@ import { useToast } from "../../context/ToastContext";
 import { formatDateTime, titleCase } from "../../utils/formatters";
 
 const ROLE_STYLE = {
-  user: "border-hairline bg-white/[0.03] text-ink-faint",
   admin: "border-signal/30 bg-signal/10 text-signal-bright",
   analyst: "border-severity-medium/30 bg-severity-medium/10 text-severity-medium",
   developer: "border-hairline bg-white/[0.05] text-ink-muted",
@@ -80,9 +79,7 @@ export default function AdminUsers() {
           <option value="">All roles</option>
           <option value="admin">Admin</option>
           <option value="analyst">Analyst</option>
-          <option value="user">User</option>
-          <option value="user">User</option>
-          <option value="user">User</option>
+                              <option value="user">User</option>
             <option value="developer">Developer</option>
         </Select>
       </div>
