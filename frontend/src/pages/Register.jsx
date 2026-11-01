@@ -33,9 +33,10 @@ export default function Register() {
     <AuthLayout title="Create a developer account" subtitle="New accounts start with developer access; an admin can grant analyst or admin roles.">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <ErrorState message={error} />}
-        <Input label="Full name" required autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Dana Developer" />
-        <Input label="Email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+        <Input size="lg" label="Full name" required autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Dana Developer" />
+        <Input size="lg" label="Email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
         <PasswordInput
+          size="lg"
           label="Password"
           name="password"
           required
@@ -46,13 +47,13 @@ export default function Register() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="At least 8 characters"
         />
-        <Button type="submit" className="w-full" size="lg" loading={loading}>
+        <Button type="submit" className="mt-1 w-full" size="lg" loading={loading}>
           Create account
         </Button>
       </form>
       <p className="mt-6 text-center text-sm text-ink-muted">
         Already have an account?{" "}
-        <Link to="/login" className="rounded font-medium text-signal hover:text-signal-bright">
+        <Link to="/login" className="rounded font-medium text-signal-bright hover:text-ink">
           Log in
         </Link>
       </p>

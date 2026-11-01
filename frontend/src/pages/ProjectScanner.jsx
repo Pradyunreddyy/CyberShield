@@ -98,7 +98,7 @@ export default function ProjectScanner() {
           }}
           className={`flex min-h-[176px] flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-10 text-center transition-colors duration-120 focus-within:border-signal focus-within:bg-signal/5 ${
             uploading ? "cursor-progress" : "cursor-pointer"
-          } ${dragActive ? "border-signal bg-signal/5" : "border-hairline hover:border-ink-faint/50 hover:bg-panel-raised"}`}
+          } ${dragActive ? "border-signal bg-signal/[0.08] shadow-glow-blue" : "border-hairline-strong bg-white/[0.02] hover:border-signal/50 hover:bg-signal/[0.05]"}`}
         >
           <input
             ref={inputRef}
@@ -123,9 +123,9 @@ export default function ProjectScanner() {
             </div>
           ) : (
             <>
-              <UploadCloud size={28} aria-hidden="true" className={dragActive ? "text-signal" : "text-ink-muted"} />
+              <UploadCloud size={28} aria-hidden="true" className={dragActive ? "text-signal-bright" : "text-ink-muted"} />
               <p className="text-sm text-ink">
-                <span className="font-medium text-signal">Choose a ZIP or source file</span> or drag and drop files here
+                <span className="font-medium text-signal-bright">Choose a ZIP or source file</span> or drag and drop files here
               </p>
               <p className="text-xs text-ink-muted">ZIP, individual source files, multiple files, or a whole folder · 25 MB total</p>
               <div className="mt-3 flex flex-wrap justify-center gap-2">

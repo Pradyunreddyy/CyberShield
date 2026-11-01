@@ -9,12 +9,12 @@ const SEVERITY_ICON = { critical: AlertOctagon, warning: AlertTriangle, info: In
 const SEVERITY_COLOR = {
   critical: "text-severity-critical bg-severity-critical/10",
   warning: "text-severity-high bg-severity-high/10",
-  info: "text-signal bg-signal/10",
+  info: "text-signal-bright bg-signal/10",
 };
 const SEVERITY_TAG = {
   critical: "text-severity-critical border-severity-critical/30",
   warning: "text-severity-high border-severity-high/30",
-  info: "text-signal border-signal/30",
+  info: "text-signal-bright border-signal/30",
 };
 
 export default function Alerts() {
@@ -62,14 +62,14 @@ export default function Alerts() {
             onClick={() => navigate("/dashboard", { replace: true })}
             aria-label="Close alerts and return to dashboard"
             title="Back to dashboard"
-            className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-hairline bg-panel text-ink-muted transition-colors hover:bg-panel-raised hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-signal"
+            className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-hairline bg-white/[0.04] text-ink-muted transition-colors hover:bg-panel-raised hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-signal"
           >
             <X size={17} aria-hidden="true" />
           </button>
         )}
       </div>
 
-      <div className="mb-4 inline-flex rounded-md border border-hairline bg-panel p-0.5" role="group" aria-label="Filter alerts">
+      <div className="mb-4 inline-flex rounded-md border border-hairline bg-white/[0.04] p-0.5" role="group" aria-label="Filter alerts">
         {[
           { id: "all", label: `All`, count: alerts.length },
           { id: "unread", label: "Unread", count: unread },
@@ -80,11 +80,11 @@ export default function Alerts() {
             aria-pressed={filter === f.id}
             onClick={() => setFilter(f.id)}
             className={`flex items-center gap-2 rounded px-3 py-1.5 text-sm font-medium transition-colors duration-120 ${
-              filter === f.id ? "bg-panel-raised text-ink shadow-panel" : "text-ink-muted hover:text-ink"
+              filter === f.id ? "bg-white/[0.1] text-ink shadow-panel" : "text-ink-muted hover:text-ink"
             }`}
           >
             {f.label}
-            <span className="tnum font-mono text-xs text-ink-muted">{f.count}</span>
+            <span className={`tnum font-mono text-xs ${filter === f.id ? "text-ink" : "text-ink-muted"}`}>{f.count}</span>
           </button>
         ))}
       </div>

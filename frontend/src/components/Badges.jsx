@@ -1,8 +1,8 @@
 const SEVERITY_STYLES = {
-  critical: "bg-severity-critical/12 text-severity-critical border-severity-critical/30",
-  high: "bg-severity-high/12 text-severity-high border-severity-high/30",
-  medium: "bg-severity-medium/12 text-severity-medium border-severity-medium/30",
-  low: "bg-severity-low/12 text-severity-low border-severity-low/30",
+  critical: "bg-severity-critical/10 text-severity-critical border-severity-critical/30",
+  high: "bg-severity-high/10 text-severity-high border-severity-high/30",
+  medium: "bg-severity-medium/10 text-severity-medium border-severity-medium/30",
+  low: "bg-severity-low/10 text-severity-low border-severity-low/30",
 };
 
 export function SeverityBadge({ severity }) {
@@ -19,15 +19,15 @@ export function SeverityBadge({ severity }) {
 }
 
 const STATUS_STYLES = {
-  open: "bg-state-info/12 text-state-info border-state-info/30",
-  investigating: "bg-severity-medium/12 text-severity-medium border-severity-medium/30",
-  contained: "bg-severity-high/12 text-severity-high border-severity-high/30",
-  resolved: "bg-state-success/12 text-state-success border-state-success/30",
-  closed: "bg-ink-faint/12 text-ink-muted border-ink-faint/30",
-  pending: "bg-ink-faint/12 text-ink-muted border-ink-faint/30",
-  running: "bg-state-info/12 text-state-info border-state-info/30",
-  completed: "bg-state-success/12 text-state-success border-state-success/30",
-  failed: "bg-state-danger/12 text-state-danger border-state-danger/30",
+  open: "bg-signal/10 text-signal-bright border-signal/30",
+  investigating: "bg-severity-medium/10 text-severity-medium border-severity-medium/30",
+  contained: "bg-severity-high/10 text-severity-high border-severity-high/30",
+  resolved: "bg-state-success/10 text-state-success border-state-success/30",
+  closed: "bg-ink-faint/10 text-ink-muted border-ink-faint/30",
+  pending: "bg-ink-faint/10 text-ink-muted border-ink-faint/30",
+  running: "bg-signal/10 text-signal-bright border-signal/30",
+  completed: "bg-state-success/10 text-state-success border-state-success/30",
+  failed: "bg-state-danger/10 text-state-danger border-state-danger/30",
 };
 
 export function StatusBadge({ status }) {
@@ -41,11 +41,11 @@ export function StatusBadge({ status }) {
 }
 
 const RISK_STYLES = {
-  safe: "bg-state-success/12 text-state-success border-state-success/30",
-  low: "bg-severity-low/12 text-severity-low border-severity-low/30",
-  medium: "bg-severity-medium/12 text-severity-medium border-severity-medium/30",
-  high: "bg-severity-high/12 text-severity-high border-severity-high/30",
-  critical: "bg-severity-critical/12 text-severity-critical border-severity-critical/30",
+  safe: "bg-state-success/10 text-state-success border-state-success/30",
+  low: "bg-severity-low/10 text-severity-low border-severity-low/30",
+  medium: "bg-severity-medium/10 text-severity-medium border-severity-medium/30",
+  high: "bg-severity-high/10 text-severity-high border-severity-high/30",
+  critical: "bg-severity-critical/10 text-severity-critical border-severity-critical/30",
 };
 
 export function RiskBadge({ risk }) {
@@ -54,6 +54,15 @@ export function RiskBadge({ risk }) {
   return (
     <span className={`inline-flex items-center rounded border px-2.5 py-1 text-sm font-mono font-semibold uppercase tracking-wide ${cls}`}>
       {key}
+    </span>
+  );
+}
+
+// Marks content produced by the AI analyzer, in the brand violet.
+export function AiBadge({ children = "AI-generated" }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded border border-violet/30 bg-violet/10 px-2 py-0.5 text-xs font-medium text-violet-bright">
+      {children}
     </span>
   );
 }

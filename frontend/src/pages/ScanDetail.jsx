@@ -166,7 +166,7 @@ export default function ScanDetail() {
                 </h3>
                 <ul className="space-y-3">
                   {items.map((finding) => (
-                    <li key={finding.id} className="rounded-md border border-hairline bg-panel-raised p-4">
+                    <li key={finding.id} className="rounded-md border border-hairline bg-white/[0.035] p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2.5">
@@ -205,8 +205,8 @@ export default function ScanDetail() {
                       )}
 
                       {finding.ai_explanation && (
-                        <div className="mt-3 flex items-start gap-2.5 rounded-md border border-signal/20 bg-signal/5 px-3 py-2.5">
-                          <Bot size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-signal" />
+                        <div className="mt-3 flex items-start gap-2.5 rounded-md border border-violet/25 bg-violet/[0.07] px-3 py-2.5">
+                          <Bot size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-violet-bright" />
                           <p className="text-sm text-ink-muted">
                             <span className="font-medium text-ink">AI explanation: </span>
                             {finding.ai_explanation}
@@ -249,7 +249,7 @@ export default function ScanDetail() {
 
 function Stat({ label, value }) {
   return (
-    <div className="bg-panel px-4 py-3">
+    <div className="bg-panel/70 px-4 py-3">
       <dt className="text-xs text-ink-muted">{label}</dt>
       <dd className="tnum mt-1 font-mono text-lg font-semibold text-ink">{value}</dd>
     </div>

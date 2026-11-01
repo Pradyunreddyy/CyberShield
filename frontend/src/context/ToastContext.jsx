@@ -74,7 +74,7 @@ function ToastItem({ toast, onDismiss }) {
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
-      className={`exit-slide pointer-events-auto flex w-full items-start gap-2.5 rounded-md border ${styles.border} bg-panel-raised px-3.5 py-3 shadow-overlay animate-slide-in`}
+      className={`exit-slide pointer-events-auto flex w-full items-start gap-2.5 rounded-md border ${styles.border} glass-strong px-3.5 py-3 animate-slide-in`}
     >
       <div className="mt-0.5" aria-hidden="true">
         {styles.icon}
@@ -83,7 +83,7 @@ function ToastItem({ toast, onDismiss }) {
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="-mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-muted transition-colors duration-120 hover:bg-hairline hover:text-ink"
+        className="-mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-muted transition-colors duration-120 hover:bg-white/[0.08] hover:text-ink"
         aria-label="Dismiss notification"
       >
         <X size={14} aria-hidden="true" />

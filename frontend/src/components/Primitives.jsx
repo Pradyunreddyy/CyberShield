@@ -1,15 +1,12 @@
 import { useId } from "react";
 import { AlertTriangle, RotateCw } from "lucide-react";
 
-export function Panel({ title, description, action, children, className = "", bodyClassName = "p-4" }) {
+export function Panel({ title, description, action, children, className = "", bodyClassName = "p-4 sm:p-5" }) {
   const headingId = useId();
   return (
-    <section
-      aria-labelledby={title ? headingId : undefined}
-      className={`rounded-lg border border-hairline bg-panel shadow-panel ${className}`}
-    >
+    <section aria-labelledby={title ? headingId : undefined} className={`glass rounded-lg ${className}`}>
       {(title || action) && (
-        <div className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3.5 sm:px-5">
           <div className="min-w-0">
             {title && (
               <h2 id={headingId} className="text-sm font-semibold text-ink">
@@ -33,8 +30,8 @@ export function PageHeader({ title, description, actions, eyebrow, className = "
     <header className={`mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 ${className}`}>
       <div className="min-w-0">
         {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
-        <h1 className="text-xl font-semibold text-ink">{title}</h1>
-        {description && <p className="mt-1 max-w-2xl text-sm text-ink-muted">{description}</p>}
+        <h1 className="text-xl font-semibold text-ink sm:text-2xl">{title}</h1>
+        {description && <p className="mt-1.5 max-w-2xl text-sm text-ink-muted">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </header>
@@ -45,7 +42,7 @@ export function EmptyState({ icon: Icon, title, description, action }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
       {Icon && (
-        <div className="mb-1 flex h-11 w-11 items-center justify-center rounded-full bg-panel-raised text-ink-muted ring-1 ring-hairline">
+        <div className="mb-1.5 flex h-12 w-12 items-center justify-center rounded-full bg-brand-soft text-signal-bright ring-1 ring-hairline-strong">
           <Icon size={20} aria-hidden="true" />
         </div>
       )}
@@ -57,7 +54,7 @@ export function EmptyState({ icon: Icon, title, description, action }) {
 }
 
 export function SkeletonBlock({ className = "" }) {
-  return <div aria-hidden="true" className={`animate-pulse rounded-md bg-panel-raised ${className}`} />;
+  return <div aria-hidden="true" className={`skeleton rounded-md ${className}`} />;
 }
 
 export function SkeletonRows({ rows = 5, cols = 4 }) {
@@ -74,8 +71,8 @@ export function SkeletonRows({ rows = 5, cols = 4 }) {
   );
 }
 
-// Small inline loading indicator. Kept animated under reduced motion on
-// purpose: it is feedback that work is in progress, not decoration.
+// Small inline loading indicator. Kept animated under reduced motion on purpose:
+// it is feedback that work is in progress, not decoration.
 export function Spinner({ size = 16, className = "" }) {
   return (
     <span
@@ -87,14 +84,11 @@ export function Spinner({ size = 16, className = "" }) {
   );
 }
 
-// `message` alone keeps every existing call site working. Pass `onRetry` to
-// give the user a way forward instead of a dead end.
+// `message` alone keeps every existing call site working. Pass `onRetry` to give
+// the user a way forward instead of a dead end.
 export function ErrorState({ message, title, onRetry, retryLabel = "Try again" }) {
   return (
-    <div
-      role="alert"
-      className="flex items-start gap-3 rounded-md border border-state-danger/30 bg-state-danger/10 px-4 py-3"
-    >
+    <div role="alert" className="flex items-start gap-3 rounded-md border border-state-danger/30 bg-state-danger/10 px-4 py-3">
       <AlertTriangle size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-severity-critical" />
       <div className="min-w-0 flex-1">
         {title && <p className="text-sm font-medium text-ink">{title}</p>}
@@ -104,7 +98,7 @@ export function ErrorState({ message, title, onRetry, retryLabel = "Try again" }
         <button
           type="button"
           onClick={onRetry}
-          className="flex shrink-0 items-center gap-1.5 rounded-md border border-hairline bg-panel-raised px-2.5 py-1.5 text-xs font-medium text-ink transition-colors duration-120 hover:bg-hairline"
+          className="btn-secondary flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors duration-120"
         >
           <RotateCw size={12} aria-hidden="true" />
           {retryLabel}
