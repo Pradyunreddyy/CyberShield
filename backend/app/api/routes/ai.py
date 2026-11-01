@@ -16,6 +16,14 @@ from app.services import audit_service
 router = APIRouter(prefix="/api/ai", tags=["AI Incident Analyzer"], dependencies=[Depends(require_any_role)])
 
 
+@router.post(
+    "/analyze-incident",
+    response_model=AIAnalyzeResult,
+    summary="Run the AI Incident Analyzer over incident text/logs/indicators",
+    description="The AI service is called server-side only (the API key is never exposed to the browser). "
+    "Output is advisory - a qualified analyst must validate it before acting. If the AI provider is "
+    "unavailable, a clearly-labeled fallback assessment is returned instead of failing the request.",
+)
 @router.get(
     "/incidents/{incident_id}/latest",
     response_model=AIAnalyzeResult | None,
@@ -49,14 +57,6 @@ def get_latest_incident_analysis(
     return AIAnalyzeResult.model_validate(json.loads(analysis.result_json))
 
 
-@router.post(
-    "/analyze-incident",
-    response_model=AIAnalyzeResult,
-    summary="Run the AI Incident Analyzer over incident text/logs/indicators",
-    description="The AI service is called server-side only (the API key is never exposed to the browser). "
-    "Output is advisory - a qualified analyst must validate it before acting. If the AI provider is "
-    "unavailable, a clearly-labeled fallback assessment is returned instead of failing the request.",
-)
 def analyze_incident(
     payload: AIAnalyzeRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
