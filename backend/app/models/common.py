@@ -22,6 +22,7 @@ class TimestampMixin:
 
 
 class UserRole(str, enum.Enum):
+    USER = "user"
     DEVELOPER = "developer"
     ANALYST = "analyst"
     ADMIN = "admin"
