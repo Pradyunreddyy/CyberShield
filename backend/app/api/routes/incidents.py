@@ -38,10 +38,10 @@ def list_assignable_analysts(db: Session = Depends(get_db)):
 
 
 def _ensure_can_view(incident, current_user: User) -> None:
-    if current_user.role in (UserRole.USER, UserRole.DEVELOPER) and incident.reporter_id != current_user.id:
+    if current_user.role in UserRole.DEVELOPER and incident.reporter_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Users can only view incidents they have reported.",
+            detail="Developers can only view incidents they have reported.",
         )
 
 
