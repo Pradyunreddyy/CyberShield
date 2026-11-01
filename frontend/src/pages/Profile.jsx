@@ -19,7 +19,7 @@ export default function Profile() {
       <div className="space-y-4">
         <Panel bodyClassName="p-5">
           <div className="flex items-center gap-4">
-            <div aria-hidden="true" className="flex h-14 w-14 items-center justify-center rounded-full bg-signal/15 text-lg font-semibold text-signal ring-1 ring-signal/25">
+            <div aria-hidden="true" className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-soft text-lg font-semibold text-signal-bright ring-1 ring-signal/30">
               {initials}
             </div>
             <div className="min-w-0">

@@ -69,7 +69,7 @@ export function Modal({ open, onClose, title, children, footer, width = "max-w-l
   return createPortal(
     <div
       data-state={state}
-      className="exit-fade fixed inset-0 z-40 flex items-end justify-center bg-void/75 px-4 py-6 animate-fade sm:items-center"
+      className="exit-fade fixed inset-0 z-40 flex items-end justify-center bg-void/70 px-4 py-6 animate-fade backdrop-blur-sm sm:items-center"
     >
       <div
         ref={dialogRef}
@@ -78,7 +78,7 @@ export function Modal({ open, onClose, title, children, footer, width = "max-w-l
         aria-labelledby={titleId}
         tabIndex={-1}
         data-state={state}
-        className={`exit-pop flex max-h-full w-full ${width} flex-col rounded-lg bg-panel-raised shadow-overlay animate-pop focus:outline-none`}
+        className={`exit-pop glass-strong flex max-h-full w-full ${width} flex-col rounded-xl animate-pop focus:outline-none`}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-5 py-3.5">
           <h2 id={titleId} className="text-sm font-semibold text-ink">
@@ -87,7 +87,7 @@ export function Modal({ open, onClose, title, children, footer, width = "max-w-l
           <button
             type="button"
             onClick={onClose}
-            className="-mr-1.5 flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition-colors duration-120 hover:bg-hairline hover:text-ink"
+            className="-mr-1.5 flex h-9 w-9 items-center justify-center rounded-md text-ink-muted transition-colors duration-120 hover:bg-white/[0.08] hover:text-ink"
             aria-label="Close dialog"
           >
             <X size={16} aria-hidden="true" />

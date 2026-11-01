@@ -18,15 +18,16 @@ import { useReducedMotion } from "../hooks/useReducedMotion";
 
 // One source of truth for chart styling. SVG needs literal colors, so these
 // mirror tailwind.config.js (keep them in sync when tokens change).
-export const SEVERITY_COLORS = { critical: "#FF4757", high: "#FF9F43", medium: "#F0C93D", low: "#8E9BB3" };
-export const STATUS_COLORS = { open: "#5B8CFF", investigating: "#F0C93D", contained: "#FF9F43", resolved: "#2ED573", closed: "#8891A0" };
-export const ACCENT = "#5B8CFF";
-const FALLBACK = "#8891A0";
+export const SEVERITY_COLORS = { critical: "#FF6C78", high: "#FF9F43", medium: "#F0C93D", low: "#9AA7BF" };
+export const STATUS_COLORS = { open: "#398BFF", investigating: "#F0C93D", contained: "#FF9F43", resolved: "#2ED573", closed: "#94A2BE" };
+export const ACCENT = "#398BFF"; // Electric Blue
+export const VIOLET = "#9875FF"; // Violet
+const FALLBACK = "#94A2BE";
 
-export const axisProps = { tick: { fontSize: 11, fill: "#8891A0" }, axisLine: false, tickLine: false };
-export const gridProps = { stroke: "#1A1E27", strokeDasharray: "3 3" };
-export const barCursor = { fill: "rgba(230,233,239,0.05)" };
-export const lineCursor = { stroke: "#3A4150", strokeWidth: 1 };
+export const axisProps = { tick: { fontSize: 11, fill: "#94A2BE" }, axisLine: false, tickLine: false };
+export const gridProps = { stroke: "rgba(152,176,230,0.1)", strokeDasharray: "3 3" };
+export const barCursor = { fill: "rgba(152,176,230,0.07)" };
+export const lineCursor = { stroke: "rgba(152,176,230,0.35)", strokeWidth: 1 };
 
 // Recharts animates in JS, so reduced-motion has to be applied here.
 export function useChartMotion() {
@@ -46,7 +47,7 @@ export function ChartTooltip({ active, payload, label, labelFormatter, colors, t
   const heading = !categorical && label != null && label !== "" ? (labelFormatter ? labelFormatter(label) : label) : null;
 
   return (
-    <div className="min-w-[8.5rem] rounded-md border border-hairline bg-panel-raised px-3 py-2 text-xs shadow-overlay">
+    <div className="glass-strong min-w-[8.5rem] rounded-md px-3 py-2 text-xs">
       {heading && <div className="mb-1.5 font-medium text-ink">{heading}</div>}
       <ul className="space-y-1">
         {payload.map((entry, i) => {
@@ -166,11 +167,11 @@ export const shortDate = (iso) => {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 };
 
-const VALUE_LABEL = { fill: "#E6E9EF", fontSize: 11, fontFamily: "JetBrains Mono, monospace" };
+const VALUE_LABEL = { fill: "#E8EDF8", fontSize: 11, fontFamily: "JetBrains Mono, monospace" };
 
 // Counts per day. Linear (not smoothed): a smoothed curve implies values
 // between days that do not exist.
-export function TimeSeriesChart({ data, color = ACCENT, seriesName = "Count", height = 232, gradientId = "ts-gradient" }) {
+export function TimeSeriesChart({ data, color = ACCENT, colorEnd, seriesName = "Count", height = 232, gradientId = "ts-gradient" }) {
   const motion = useChartMotion();
   return (
     <ChartFrame summary={summarize(`${seriesName} per day`, data.map((r) => ({ label: shortDate(r.date), count: r.count })), (r) => r.label)}>
@@ -181,6 +182,10 @@ export function TimeSeriesChart({ data, color = ACCENT, seriesName = "Count", he
               <stop offset="0%" stopColor={color} stopOpacity={0.28} />
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
+            <linearGradient id={`${gradientId}-stroke`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor={color} />
+              <stop offset="100%" stopColor={colorEnd || color} />
+            </linearGradient>
           </defs>
           <CartesianGrid {...gridProps} vertical={false} />
           <XAxis dataKey="date" {...axisProps} tickFormatter={shortDate} interval="preserveStartEnd" minTickGap={28} />
@@ -189,10 +194,10 @@ export function TimeSeriesChart({ data, color = ACCENT, seriesName = "Count", he
           <Area
             type="linear"
             dataKey="count"
-            stroke={color}
+            stroke={`url(#${gradientId}-stroke)`}
             fill={`url(#${gradientId})`}
             strokeWidth={2}
-            activeDot={{ r: 4, stroke: "#12151C", strokeWidth: 2, fill: color }}
+            activeDot={{ r: 4.5, stroke: "#111C32", strokeWidth: 2, fill: colorEnd || color }}
             {...motion}
           />
         </AreaChart>

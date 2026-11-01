@@ -67,7 +67,7 @@ export default function AdminSettings() {
         </p>
         <ul className="flex flex-wrap gap-2">
           {INCIDENT_TYPES.map((type) => (
-            <li key={type} className="rounded-md border border-hairline bg-panel-raised px-2.5 py-1 text-xs text-ink-muted">
+            <li key={type} className="rounded-md border border-hairline bg-white/[0.04] px-2.5 py-1 text-xs text-ink-muted">
               {type.replace(/_/g, " ")}
             </li>
           ))}
@@ -79,7 +79,7 @@ export default function AdminSettings() {
 
 function ConfigRow({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-md border border-hairline-soft bg-panel-raised px-3.5 py-3">
+    <div className="rounded-md border border-hairline-soft bg-white/[0.035] px-3.5 py-3">
       <dt className="flex items-center gap-2 text-xs text-ink-muted">
         <Icon size={14} aria-hidden="true" className="shrink-0" /> {label}
       </dt>

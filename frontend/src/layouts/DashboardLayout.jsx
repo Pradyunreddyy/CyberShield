@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
+import { AmbientBackground } from "../components/AmbientBackground";
 
 const SIDEBAR_COLLAPSED_KEY = "cybershield:sidebar-collapsed";
 
@@ -66,7 +67,8 @@ export function DashboardLayout() {
   }, []);
 
   return (
-    <div className="flex h-dvh w-full overflow-hidden bg-void">
+    <div className="relative flex h-dvh w-full overflow-hidden bg-void">
+      <AmbientBackground />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] focus:rounded-md focus:bg-signal-strong focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
@@ -79,12 +81,12 @@ export function DashboardLayout() {
         mobileOpen={mobileOpen}
         onCloseMobile={closeMobile}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <TopBar crumbs={crumbs} onOpenMobileNav={() => setMobileOpen(true)} menuButtonRef={menuButtonRef} />
         <main id="main" ref={mainRef} tabIndex={-1} className="flex-1 overflow-y-auto px-4 py-5 focus:outline-none sm:px-6 sm:py-7">
           {/* Opacity-only route transition: signals that navigation happened
               without moving content or delaying the data underneath it. */}
-          <div key={location.pathname} className="mx-auto w-full max-w-[1600px] animate-fade">
+          <div key={location.pathname} className="mx-auto w-full max-w-[1600px] animate-page-in">
             <Outlet />
           </div>
         </main>

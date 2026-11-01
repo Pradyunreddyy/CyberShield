@@ -1,60 +1,54 @@
 import { useEffect } from "react";
-import { ShieldAlert } from "lucide-react";
+import { Activity, ScanSearch, Sparkles } from "lucide-react";
+import { AmbientBackground } from "../components/AmbientBackground";
+import { LogoMark, Wordmark } from "../components/Logo";
 
-function Brand() {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-signal/15 text-signal ring-1 ring-signal/25">
-        <ShieldAlert size={17} aria-hidden="true" />
-      </div>
-      <span className="text-sm font-semibold tracking-tight text-ink">CyberShield</span>
-    </div>
-  );
-}
+const FEATURES = [
+  { icon: Activity, label: "Real-time incident tracking" },
+  { icon: Sparkles, label: "AI-assisted threat analysis" },
+  { icon: ScanSearch, label: "Static project scanning" },
+];
 
+// Shared by Login and Register. Props are unchanged: { title, subtitle, children }.
 export function AuthLayout({ children, title, subtitle }) {
   useEffect(() => {
     document.title = `${title} · CyberShield`;
   }, [title]);
 
   return (
-    <div className="flex min-h-dvh w-full bg-void">
-      <aside className="relative hidden w-[42%] max-w-xl flex-col justify-between overflow-hidden border-r border-hairline bg-panel px-10 py-10 lg:flex">
-        <Brand />
+    <div className="relative isolate min-h-dvh w-full overflow-x-hidden bg-void">
+      <AmbientBackground variant="auth" />
 
-        <div className="relative z-10">
-          <p className="text-sm font-medium text-signal">AI-Powered Cybersecurity Incident Response Platform</p>
-          <p className="mt-3 max-w-sm text-2xl font-semibold leading-snug text-ink">Detect, investigate, and resolve threats with an AI analyst at your side.</p>
-          <ul className="mt-7 space-y-3 text-sm text-ink-muted">
-            <li className="flex items-center gap-3">
-              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-severity-critical" /> Real-time incident tracking
-            </li>
-            <li className="flex items-center gap-3">
-              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-severity-high" /> AI-assisted threat analysis
-            </li>
-            <li className="flex items-center gap-3">
-              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-state-success" /> Static project security scanning
-            </li>
-          </ul>
+      <main className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[30rem] flex-col items-center justify-center px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:px-6 sm:py-12">
+        {/* Brand */}
+        <div className="flex animate-fade flex-col items-center text-center">
+          <div className="relative">
+            {/* The halo is a separate layer behind the logo; the logo is never filtered or recoloured. */}
+            <div aria-hidden="true" className="logo-halo absolute -inset-8 sm:-inset-10" />
+            <LogoMark variant="auth" height={88} alt="CyberShield" className="relative sm:!h-24" />
+          </div>
+          <Wordmark className="mt-4 text-2xl sm:text-3xl" />
+          <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-ink/80 sm:max-w-sm sm:text-sm">
+            AI-Powered Cybersecurity Incident Response Platform
+          </p>
         </div>
 
-        <p className="relative z-10 text-xs text-ink-muted">Detect. Analyze. Respond. Secure.</p>
-
-        {/* Static decorative rings; deliberately not animated. */}
-        <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full border border-signal/10" />
-        <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 -right-24 h-56 w-56 rounded-full border border-signal/10" />
-        <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 -right-24 h-40 w-40 rounded-full border border-signal/15" />
-      </aside>
-
-      <main className="flex flex-1 items-center justify-center px-5 py-10 sm:px-6">
-        <div className="w-full max-w-sm animate-rise">
-          <div className="mb-8 lg:hidden">
-            <Brand />
-          </div>
-          <h1 className="text-xl font-semibold text-ink">{title}</h1>
+        {/* Glass card */}
+        <div className="auth-card mt-6 w-full animate-rise rounded-xl p-5 sm:mt-8 sm:p-8">
+          <h1 className="text-xl font-semibold text-ink sm:text-2xl">{title}</h1>
           {subtitle && <p className="mt-1.5 text-sm text-ink-muted">{subtitle}</p>}
           <div className="mt-6">{children}</div>
         </div>
+
+        {/* Desktop-only supporting line; kept off phones so nothing competes with the form. */}
+        <ul className="mt-8 hidden flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-ink-muted md:flex">
+          {FEATURES.map(({ icon: Icon, label }) => (
+            <li key={label} className="flex items-center gap-1.5">
+              <Icon size={13} aria-hidden="true" className="text-signal-bright" /> {label}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 hidden text-xs tracking-wide text-ink-faint md:block">Detect. Analyze. Respond. Secure.</p>
       </main>
     </div>
   );

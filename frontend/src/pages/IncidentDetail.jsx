@@ -94,7 +94,7 @@ export default function IncidentDetail() {
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="font-mono text-sm text-signal">{incident.code}</span>
+              <span className="font-mono text-sm text-signal-bright">{incident.code}</span>
               <SeverityBadge severity={incident.severity} />
               <StatusBadge status={incident.status} />
             </div>
@@ -192,11 +192,11 @@ function Tabs({ tabs, counts, active, onChange }) {
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(tab)}
             className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors duration-120 ${
-              selected ? "border-signal text-ink" : "border-transparent text-ink-muted hover:text-ink"
+              selected ? "border-signal text-ink shadow-[0_8px_18px_-14px_rgb(var(--c-blue))]" : "border-transparent text-ink-muted hover:text-ink"
             }`}
           >
             {tab}
-            {counts[tab] > 0 && <span className="tnum rounded bg-panel-raised px-1.5 py-px font-mono text-2xs text-ink-muted">{counts[tab]}</span>}
+            {counts[tab] > 0 && <span className="tnum rounded bg-white/[0.07] px-1.5 py-px font-mono text-2xs text-ink-muted">{counts[tab]}</span>}
           </button>
         );
       })}
@@ -338,7 +338,7 @@ function InvestigationTab({ incident, canManage, onUpdated, toast }) {
             .slice()
             .reverse()
             .map((note) => (
-              <li key={note.id} className="rounded-md border border-hairline-soft bg-panel-raised p-3.5">
+              <li key={note.id} className="rounded-md border border-hairline-soft bg-white/[0.035] p-3.5">
                 <div className="mb-1.5 flex items-center gap-2 text-xs text-ink-muted">
                   <FileText size={12} aria-hidden="true" /> {note.author?.full_name || "System"} · <span className="tnum">{formatDateTime(note.created_at)}</span>
                 </div>
@@ -464,7 +464,7 @@ function ActionsTab({ incident, canManage, onUpdated, toast }) {
       ) : (
         <ul className="space-y-2">
           {incident.actions.map((a) => (
-            <li key={a.id} className="flex items-center justify-between gap-3 rounded-md border border-hairline-soft bg-panel-raised px-3.5 py-3">
+            <li key={a.id} className="flex items-center justify-between gap-3 rounded-md border border-hairline-soft bg-white/[0.035] px-3.5 py-3">
               <div className="min-w-0">
                 <p className="text-sm text-ink">{a.action}</p>
                 <p className="text-xs text-ink-muted">
@@ -578,7 +578,7 @@ function AIAnalyzerTab({ incident }) {
                   </p>
                 </div>
               ) : (
-                <p className="inline-flex items-center gap-1.5 rounded-md border border-signal/25 bg-signal/10 px-2 py-1 text-xs font-medium text-signal">
+                <p className="inline-flex items-center gap-1.5 rounded-md border border-violet/30 bg-violet/10 px-2 py-1 text-xs font-medium text-violet-bright">
                   <Sparkles size={12} aria-hidden="true" /> AI-generated assessment
                 </p>
               )}

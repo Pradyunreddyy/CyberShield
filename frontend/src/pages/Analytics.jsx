@@ -2,10 +2,9 @@ import { useEffect, useState } from "react";
 import { AlertOctagon, Clock, FolderSearch, ShieldAlert, Radar } from "lucide-react";
 import { Panel, PageHeader, SkeletonBlock, ErrorState } from "../components/Primitives";
 import { StatCard } from "../components/StatCard";
-import { DonutChart, HorizontalBarChart, SEVERITY_COLORS, STATUS_COLORS, TimeSeriesChart } from "../components/charts";
+import { ACCENT, DonutChart, HorizontalBarChart, SEVERITY_COLORS, STATUS_COLORS, TimeSeriesChart, VIOLET } from "../components/charts";
 import { analyticsApi } from "../api/endpoints";
 
-const SUCCESS = "#2ED573";
 
 export default function Analytics() {
   const [overview, setOverview] = useState(null);
@@ -71,10 +70,10 @@ export default function Analytics() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel title="Incidents over time" description="New incidents per day">
-          <TimeSeriesChart data={overview.incidents_over_time} seriesName="Incidents" gradientId="an-incidents" height={224} />
+          <TimeSeriesChart data={overview.incidents_over_time} color={ACCENT} colorEnd={VIOLET} seriesName="Incidents" gradientId="an-incidents" height={224} />
         </Panel>
         <Panel title="Project scans over time" description="Scans run per day">
-          <TimeSeriesChart data={overview.scans_over_time} seriesName="Scans" color={SUCCESS} gradientId="an-scans" height={224} />
+          <TimeSeriesChart data={overview.scans_over_time} seriesName="Scans" color={VIOLET} gradientId="an-scans" height={224} />
         </Panel>
       </div>
 

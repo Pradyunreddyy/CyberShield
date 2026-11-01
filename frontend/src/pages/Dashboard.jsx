@@ -5,7 +5,7 @@ import { StatCard } from "../components/StatCard";
 import { Button } from "../components/Form";
 import { Panel, PageHeader, EmptyState, SkeletonBlock, SkeletonRows, ErrorState } from "../components/Primitives";
 import { SeverityBadge, StatusBadge } from "../components/Badges";
-import { ColumnChart, DonutChart, HorizontalBarChart, SEVERITY_COLORS, STATUS_COLORS, TimeSeriesChart } from "../components/charts";
+import { ColumnChart, DonutChart, HorizontalBarChart, SEVERITY_COLORS, STATUS_COLORS, TimeSeriesChart, VIOLET } from "../components/charts";
 import { dashboardApi, analyticsApi, incidentsApi } from "../api/endpoints";
 import { useAuth } from "../hooks/useAuth";
 import { formatDateTime, titleCase } from "../utils/formatters";
@@ -152,8 +152,8 @@ export default function Dashboard() {
               { label: "Suspicious findings", value: stats.suspicious_findings, to: "/project-scanner" },
             ].map((item, i, all) => (
               // With 2 columns the odd fifth cell spans the row, so no empty cell shows the divider colour.
-              <li key={item.label} className={`bg-panel ${i === all.length - 1 ? "col-span-2 sm:col-span-1" : ""}`}>
-                <Link to={item.to} className="group block px-4 py-3 transition-colors duration-120 hover:bg-panel-raised focus-visible:bg-panel-raised">
+              <li key={item.label} className={`bg-panel/70 ${i === all.length - 1 ? "col-span-2 sm:col-span-1" : ""}`}>
+                <Link to={item.to} className="group block px-4 py-3 transition-colors duration-120 hover:bg-panel-raised/80 focus-visible:bg-panel-raised/80">
                   <span className="block text-xs text-ink-muted">{item.label}</span>
                   <span className="tnum mt-1 flex items-baseline justify-between font-mono text-lg font-semibold text-ink">
                     {item.value}
@@ -176,7 +176,7 @@ export default function Dashboard() {
             {!overview ? (
               <SkeletonBlock className="h-56" />
             ) : (
-              <TimeSeriesChart data={overview.incidents_over_time} seriesName="Incidents" gradientId="dash-incidents" />
+              <TimeSeriesChart data={overview.incidents_over_time} colorEnd={VIOLET} seriesName="Incidents" gradientId="dash-incidents" />
             )}
           </Panel>
 
@@ -210,7 +210,7 @@ export default function Dashboard() {
       <Panel
         title="Recent incidents"
         action={
-          <Link to="/incidents" className="flex items-center gap-1 rounded text-xs font-medium text-signal transition-colors duration-120 hover:text-signal-bright">
+          <Link to="/incidents" className="flex items-center gap-1 rounded text-xs font-medium text-signal-bright transition-colors duration-120 hover:text-ink">
             View all <ArrowRight size={12} aria-hidden="true" />
           </Link>
         }
@@ -252,7 +252,7 @@ export default function Dashboard() {
                       <Link
                         to={`/incidents/${incident.id}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="whitespace-nowrap font-mono text-signal hover:underline"
+                        className="whitespace-nowrap font-mono text-signal-bright hover:underline"
                       >
                         {incident.code}
                       </Link>

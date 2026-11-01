@@ -33,8 +33,9 @@ export default function Login() {
     <AuthLayout title="Log in to your account" subtitle="Access the incident response platform.">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <ErrorState message={error} />}
-        <Input label="Email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+        <Input size="lg" label="Email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
         <PasswordInput
+          size="lg"
           label="Password"
           name="password"
           required
@@ -43,13 +44,13 @@ export default function Login() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
         />
-        <Button type="submit" className="w-full" size="lg" loading={loading}>
+        <Button type="submit" className="mt-1 w-full" size="lg" loading={loading}>
           Log in
         </Button>
       </form>
       <p className="mt-6 text-center text-sm text-ink-muted">
         Don&apos;t have an account?{" "}
-        <Link to="/register" className="rounded font-medium text-signal hover:text-signal-bright">
+        <Link to="/register" className="rounded font-medium text-signal-bright hover:text-ink">
           Register
         </Link>
       </p>

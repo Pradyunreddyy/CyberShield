@@ -2,76 +2,242 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Design tokens. Every colour in the app resolves to one of these variables
+   (via tailwind.config.js), so a palette change happens here and nowhere else.
+   Values are space-separated RGB so Tailwind opacity modifiers keep working.
+   ========================================================================== */
+:root {
+  /* Brand surfaces */
+  --c-midnight: 8 13 26; /* #080D1A  Midnight Navy */
+  --c-navy: 17 28 50; /* #111C32  Deep Navy */
+  --c-navy-raised: 24 38 66; /* #182642 */
+  --c-well: 7 12 24; /* inputs, code, log output */
+  --c-line: 152 176 230; /* border/divider base; always used translucent */
+
+  /* Text: >= 4.5:1 on midnight, glass and raised surfaces */
+  --c-ink: 232 237 248;
+  --c-ink-muted: 148 162 190;
+  --c-ink-faint: 131 145 176;
+
+  /* Brand accents */
+  --c-blue: 57 139 255; /* #398BFF  Electric Blue: text, icons, glows */
+  --c-blue-dim: 36 98 196;
+  --c-blue-bright: 106 166 255;
+  --c-blue-strong: 47 111 224; /* #2F6FE0: fill behind white text (4.7:1) */
+  --c-blue-strong-hover: 40 96 201;
+  --c-violet: 152 117 255; /* #9875FF  Violet: text, icons, glows */
+  --c-violet-bright: 176 154 255;
+  --c-violet-strong: 122 86 234; /* #7A56EA: fill behind white text (4.8:1) */
+
+  /* Semantic */
+  --c-sev-critical: 255 108 120;
+  --c-sev-high: 255 159 67;
+  --c-sev-medium: 240 201 61;
+  --c-sev-low: 154 167 191;
+  --c-success: 46 213 115;
+  --c-danger-strong: 196 42 58;
+  --c-danger-strong-hover: 178 36 50;
+}
+
 @layer base {
   html {
-    color-scheme: dark; /* native controls, scrollbars and date pickers render dark */
+    color-scheme: dark;
     height: 100%;
   }
   body {
     height: 100%;
-    @apply bg-void font-sans text-sm text-ink;
+    background-color: rgb(var(--c-midnight));
+    @apply font-sans text-sm text-ink;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
   #root { height: 100%; }
   * { box-sizing: border-box; }
-  ::selection { background-color: rgba(91, 140, 255, 0.35); }
+  ::selection { background-color: rgb(var(--c-blue) / 0.35); }
 
   h1, h2, h3 { text-wrap: balance; }
   p { text-wrap: pretty; }
+  /* Titles use the display face; body copy stays in IBM Plex Sans. */
+  h1 { @apply font-display; }
 
-  /* One focus treatment everywhere: keyboard only, high-contrast, offset. */
+  /* One focus treatment everywhere: keyboard only, high contrast, offset. */
   :focus-visible {
-    outline: 2px solid #7fa4ff;
+    outline: 2px solid rgb(var(--c-blue-bright));
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 6px;
   }
   :focus:not(:focus-visible) { outline: none; }
 
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background-color: #232833; border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background-color: #2d3441; }
+  ::-webkit-scrollbar-thumb { background-color: rgb(var(--c-line) / 0.18); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background-color: rgb(var(--c-line) / 0.3); }
 }
 
 @layer components {
-  /* Numbers in a SOC are compared down a column; keep digits the same width. */
   .tnum { font-variant-numeric: tabular-nums; }
 
-  /* Data tables: one definition instead of per-page th/td class soup. */
+  /* ---- Glass surfaces ----------------------------------------------------
+     .glass         content cards/panels. Translucent, NO backdrop blur: blur over
+                    a near-flat background adds cost and no look, and a page has
+                    dozens of panels.
+     .glass-strong  overlays (modal, menus, toasts, tooltips). Near-opaque so text
+                    never depends on what is behind it.
+     .glass-blur    opt-in backdrop blur, only for the few surfaces that actually
+                    sit over moving/lit content (drawer, modal scrim, auth card). */
+  .glass {
+    background-color: rgb(var(--c-navy) / 0.62);
+    background-image: linear-gradient(160deg, rgb(255 255 255 / 0.045), rgb(255 255 255 / 0) 45%);
+    border: 1px solid rgb(var(--c-line) / 0.14);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 12px 32px -18px rgb(2 5 14 / 0.8);
+  }
+  .glass-strong {
+    background-color: rgb(var(--c-navy) / 0.96);
+    background-image: linear-gradient(160deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0) 50%);
+    border: 1px solid rgb(var(--c-line) / 0.2);
+    box-shadow: 0 0 0 1px rgb(2 5 14 / 0.5), 0 28px 70px -18px rgb(2 5 14 / 0.9);
+  }
+  .glass-blur {
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: blur(16px) saturate(140%);
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-blur { background-color: rgb(var(--c-navy) / 0.97); }
+  }
+
+  /* Cards that are links/buttons: lift, brighten the edge, add a blue glow. */
+  .interactive-card {
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms, box-shadow 260ms, background-color 180ms;
+  }
+  .interactive-card:hover,
+  .interactive-card:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgb(var(--c-blue) / 0.45);
+    background-color: rgb(var(--c-navy-raised) / 0.7);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 18px 40px -16px rgb(2 5 14 / 0.9), 0 0 32px -10px rgb(var(--c-blue) / 0.45);
+  }
+
+  /* ---- Authentication card ----------------------------------------------- */
+  .auth-card {
+    position: relative;
+    background-color: rgb(var(--c-navy) / 0.55);
+    /* Top-left sheen, plus faint blue and violet light pooled in opposite corners. */
+    background-image:
+      radial-gradient(120% 70% at 0% 0%, rgb(var(--c-blue) / 0.13), transparent 60%),
+      radial-gradient(100% 70% at 100% 100%, rgb(var(--c-violet) / 0.12), transparent 58%),
+      linear-gradient(155deg, rgb(255 255 255 / 0.09), rgb(255 255 255 / 0.02) 42%, rgb(255 255 255 / 0.01));
+    border: 1px solid rgb(var(--c-line) / 0.14);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.1),
+      0 0 0 1px rgb(2 5 14 / 0.45),
+      0 44px 90px -34px rgb(2 5 14 / 0.95),
+      0 0 90px -34px rgb(var(--c-blue) / 0.4);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    backdrop-filter: blur(22px) saturate(150%);
+  }
+  /* Gradient hairline: a 1px blue-to-violet border drawn with a masked layer. */
+  .auth-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(140deg, rgb(var(--c-blue) / 0.6), rgb(var(--c-violet) / 0.08) 38%, rgb(var(--c-violet) / 0.5));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .auth-card { background-color: rgb(var(--c-navy) / 0.94); }
+  }
+
+  /* ---- Ambient light -------------------------------------------------------
+     Soft orbs are radial gradients (no CSS blur filter: far cheaper to paint).
+     Only transform animates, and only a short distance. */
+  .orb { position: absolute; border-radius: 9999px; pointer-events: none; will-change: transform; }
+  .orb-blue { background: radial-gradient(closest-side, rgb(var(--c-blue) / 0.5), rgb(var(--c-blue) / 0)); }
+  .orb-violet { background: radial-gradient(closest-side, rgb(var(--c-violet) / 0.44), rgb(var(--c-violet) / 0)); }
+  .orb-teal { background: radial-gradient(closest-side, rgb(40 200 170 / 0.16), rgb(40 200 170 / 0)); }
+
+  /* Soft halo that separates the (near-black rimmed) logo from the background
+     without touching the logo itself. */
+  .logo-halo { background: radial-gradient(closest-side, rgb(70 190 170 / 0.28), rgb(var(--c-blue) / 0.12) 55%, transparent); }
+
+  /* ---- Buttons --------------------------------------------------------------
+     The primary fill is the deepened blue->violet pair (white text >= 4.5:1 at
+     both ends). On hover the oversized gradient slides, which reads as a sheen
+     and animates background-position only. */
+  .btn-primary {
+    @apply bg-brand text-white;
+    background-size: 170% 100%;
+    background-position: 0% 0;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 8px 22px -10px rgb(var(--c-blue) / 0.8);
+    transition: background-position 420ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms, transform 120ms;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-position: 100% 0;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 10px 30px -8px rgb(var(--c-violet) / 0.65);
+  }
+  .btn-secondary {
+    @apply border border-hairline bg-white/[0.04] text-ink;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  }
+  .btn-secondary:hover:not(:disabled) { @apply border-hairline-strong bg-white/[0.09]; }
+  .btn-danger { @apply bg-state-danger-strong text-white; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18); }
+  .btn-danger:hover:not(:disabled) { @apply bg-state-danger-strong-hover; }
+  .btn-ghost { @apply text-ink-muted; }
+  .btn-ghost:hover:not(:disabled) { @apply bg-white/[0.07] text-ink; }
+
+  /* ---- Data tables ------------------------------------------------------- */
   .data-table { @apply w-full text-sm tnum; }
   .data-table thead th {
-    @apply whitespace-nowrap pb-2 pr-4 text-left text-xs font-medium text-ink-muted;
+    @apply whitespace-nowrap pb-2.5 pr-4 text-left text-xs font-medium text-ink-muted;
   }
-  .data-table tbody td { @apply py-2.5 pr-4 align-middle; }
+  .data-table tbody td { @apply py-3 pr-4 align-middle; }
   .data-table tbody tr { @apply border-t border-hairline-soft transition-colors duration-120; }
-  .data-table tbody tr[data-interactive="true"] { @apply cursor-pointer hover:bg-white/[0.025]; }
-  .data-table tbody tr[data-interactive="true"]:focus-visible { @apply bg-white/[0.04]; }
+  .data-table tbody tr[data-interactive="true"] { @apply cursor-pointer hover:bg-signal/[0.06]; }
+  .data-table tbody tr[data-interactive="true"]:focus-visible { @apply bg-signal/[0.09]; }
 
-  /* Small label used above grouped content (sidebar sections, form groups). */
   .eyebrow { @apply text-2xs font-medium uppercase tracking-[0.08em] text-ink-faint; }
+
+  /* Loading placeholder with a slow highlight sweep (opacity/background only). */
+  .skeleton {
+    background-color: rgb(255 255 255 / 0.04);
+    background-image: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 0.07) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2.4s linear infinite;
+  }
 }
 
 /* Legacy names kept so existing markup keeps working. */
 .animate-pulse-dot { animation: pulse-soft 2s ease-in-out infinite; }
-.animate-fade-in-up { animation: rise 280ms cubic-bezier(0.25, 1, 0.5, 1) both; }
+.animate-fade-in-up { animation: rise 360ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 /* Staggered entrance: set style={{ "--i": n }} on children. Capped so a long
-   list never makes the user wait for decoration. */
-.stagger > * { animation-delay: calc(min(var(--i, 0), 8) * 45ms); }
+   list never makes anyone wait for decoration. */
+.stagger > * { animation-delay: calc(min(var(--i, 0), 8) * 50ms); }
 
 /* Exit states for elements kept mounted briefly by useExitTransition(). */
 [data-state="closed"].exit-pop { animation: pop-out 140ms cubic-bezier(0.25, 1, 0.5, 1) both; }
 [data-state="closed"].exit-slide { animation: slide-out 160ms cubic-bezier(0.25, 1, 0.5, 1) both; }
 [data-state="closed"].exit-fade { animation: fade-out 140ms cubic-bezier(0.25, 1, 0.5, 1) both; }
 
-/* Reduced motion: keep every state change (it still happens, instantly or as
-   a short opacity fade) but remove translation/scale and all looping. The
-   small loading spinner is retained: it is feedback, not decoration. */
+/* Phones: no ambient drift (battery/perf); lighter blur on the auth card. */
+@media (max-width: 640px) {
+  .orb { animation: none !important; }
+  .auth-card { -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%); }
+}
+
+/* Reduced motion: every state change still happens (instantly or as a short
+   opacity fade); translation/scale and all looping decoration are removed. The
+   small spinner stays: it is feedback, not decoration. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
-  .animate-rise, .animate-pop, .animate-slide-in, .animate-fade-in-up { animation: fade 120ms linear both !important; }
+  .animate-rise, .animate-pop, .animate-slide-in, .animate-page-in, .animate-fade-in-up { animation: fade 120ms linear both !important; }
   .exit-pop[data-state="closed"], .exit-slide[data-state="closed"] { animation: fade-out 100ms linear both !important; }
-  .animate-pulse-soft, .animate-pulse-dot, .animate-pulse, .animate-sweep { animation: none !important; }
+  .animate-pulse-soft, .animate-pulse-dot, .animate-pulse, .animate-sweep, .animate-shimmer, .skeleton, .orb { animation: none !important; }
+  .interactive-card:hover, .interactive-card:focus-visible { transform: none; }
   .transition-transform, .transition-all { transition-property: color, background-color, border-color, opacity !important; }
 }

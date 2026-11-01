@@ -116,7 +116,7 @@ export default function AuditLogs() {
                       <td className="whitespace-nowrap font-mono text-xs text-ink-muted">{formatDateTime(log.created_at)}</td>
                       <td className="whitespace-nowrap text-ink">{userLabel(log.user_id)}</td>
                       <td>
-                        <code className="rounded bg-well px-1.5 py-0.5 font-mono text-xs text-signal ring-1 ring-hairline">{log.action}</code>
+                        <code className="rounded bg-well px-1.5 py-0.5 font-mono text-xs text-signal-bright ring-1 ring-hairline">{log.action}</code>
                       </td>
                       <td className="whitespace-nowrap text-ink-muted">
                         {log.resource_type ? (

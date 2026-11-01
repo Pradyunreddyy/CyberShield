@@ -214,7 +214,7 @@ export default function Incidents() {
                         <Link
                           to={`/incidents/${incident.id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="whitespace-nowrap font-mono text-signal hover:underline"
+                          className="whitespace-nowrap font-mono text-signal-bright hover:underline"
                         >
                           {incident.code}
                         </Link>
