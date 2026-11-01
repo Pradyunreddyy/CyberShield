@@ -64,7 +64,7 @@ def require_roles(*roles: UserRole):
 
 require_admin = require_roles(UserRole.ADMIN)
 require_analyst_or_admin = require_roles(UserRole.ANALYST, UserRole.ADMIN)
-require_any_role = require_roles(UserRole.USER, UserRole.DEVELOPER, UserRole.ANALYST, UserRole.ADMIN)
+require_any_role = require_roles(UserRole.DEVELOPER, UserRole.ANALYST, UserRole.ADMIN)
 
 
 def get_client_ip(request: Request) -> str | None:
