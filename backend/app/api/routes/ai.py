@@ -27,8 +27,8 @@ router = APIRouter(prefix="/api/ai", tags=["AI Incident Analyzer"], dependencies
 def analyze_incident(
     payload: AIAnalyzeRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    # Regular users and developers can analyze only incidents they reported.
-    if current_user.role in (UserRole.USER, UserRole.DEVELOPER):
+    # Developers can analyze only incidents they reported.
+    if current_user.role in UserRole.DEVELOPER:
         if not payload.incident_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Create or select one of your incidents before running AI analysis.")
         incident = incident_repo.get_by_id(db, payload.incident_id)
