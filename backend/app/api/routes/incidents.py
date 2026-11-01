@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_analyst_or_admin
+from app.api.deps import get_current_user, require_analyst_or_admin, require_any_role
 from app.database.session import get_db
 from app.models.common import UserRole
 from app.models.user import User
@@ -73,8 +73,8 @@ def list_incidents(
 
 @router.post(
     "", response_model=IncidentDetailOut, status_code=201,
-    summary="Create a new incident (analyst/admin only)",
-    dependencies=[Depends(require_analyst_or_admin)],
+    summary="Create a new incident (all authenticated roles)",
+    dependencies=[Depends(require_any_role)],
 )
 def create_incident(payload: IncidentCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     incident = incident_service.create_incident(db, payload, current_user)

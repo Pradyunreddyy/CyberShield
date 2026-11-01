@@ -37,7 +37,7 @@ export default function Incidents() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const canCreate = user.role === "analyst" || user.role === "admin";
+  const canCreate = true;
 
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
