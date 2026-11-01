@@ -18,6 +18,7 @@ export default function IncidentDetail() {
   const { user } = useAuth();
   const toast = useToast();
   const canManage = user.role === "analyst" || user.role === "admin";
+  const canUseAI = canManage || user.role === "developer";
 
   const [incident, setIncident] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -115,10 +116,10 @@ export default function IncidentDetail() {
         {activeTab === "Investigation" && <InvestigationTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
         {activeTab === "Timeline" && <TimelineTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
         {activeTab === "Response Actions" && <ActionsTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
-        {activeTab === "AI Analyzer" && canManage && <AIAnalyzerTab incident={incident} />}
-        {activeTab === "AI Analyzer" && !canManage && (
+        {activeTab === "AI Analyzer" && canUseAI && <AIAnalyzerTab incident={incident} />}
+        {activeTab === "AI Analyzer" && !canUseAI && (
           <Panel>
-            <p className="text-sm text-ink-muted">Only security analysts and administrators can run the AI Incident Analyzer.</p>
+            <p className="text-sm text-ink-muted">Your role does not have access to the AI Incident Analyzer.</p>
           </Panel>
         )}
       </div>
