@@ -115,12 +115,7 @@ export default function IncidentDetail() {
         {activeTab === "Investigation" && <InvestigationTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
         {activeTab === "Timeline" && <TimelineTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
         {activeTab === "Response Actions" && <ActionsTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
-        {activeTab === "AI Analyzer" && canManage && <AIAnalyzerTab incident={incident} />}
-        {activeTab === "AI Analyzer" && !canManage && (
-          <Panel>
-            <p className="text-sm text-ink-muted">Only security analysts and administrators can run the AI Incident Analyzer.</p>
-          </Panel>
-        )}
+        {activeTab === "AI Analyzer" && <AIAnalyzerTab incident={incident} />}
       </div>
     </div>
   );
