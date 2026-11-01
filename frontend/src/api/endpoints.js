@@ -29,6 +29,7 @@ export const analyticsApi = {
 
 export const aiApi = {
   analyzeIncident: (payload) => apiClient.post("/api/ai/analyze-incident", payload),
+  latestIncidentAnalysis: (incidentId) => apiClient.get(`/api/ai/incidents/${incidentId}/latest`),
 };
 
 export const scansApi = {
