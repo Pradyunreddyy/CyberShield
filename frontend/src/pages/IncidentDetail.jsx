@@ -506,6 +506,22 @@ function AIAnalyzerTab({ incident }) {
   const [error, setError] = useState("");
   const [elapsed, setElapsed] = useState(0);
 
+  // Restore the latest saved assessment whenever this tab mounts again.
+  useEffect(() => {
+    let cancelled = false;
+    aiApi
+      .latestIncidentAnalysis(incident.id)
+      .then((res) => {
+        if (!cancelled) setResult(res.data || null);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(getApiErrorMessage(err, "Could not load the saved AI assessment."));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [incident.id]);
+
   // Real elapsed time of the real request. No invented "phases".
   useEffect(() => {
     if (!loading) {

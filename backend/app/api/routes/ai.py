@@ -24,6 +24,39 @@ router = APIRouter(prefix="/api/ai", tags=["AI Incident Analyzer"], dependencies
     "Output is advisory - a qualified analyst must validate it before acting. If the AI provider is "
     "unavailable, a clearly-labeled fallback assessment is returned instead of failing the request.",
 )
+@router.get(
+    "/incidents/{incident_id}/latest",
+    response_model=AIAnalyzeResult | None,
+    summary="Get the latest saved AI assessment for an incident",
+)
+def get_latest_incident_analysis(
+    incident_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    incident = incident_repo.get_by_id(db, incident_id)
+    if not incident:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found.")
+
+    # Developers may retrieve only assessments for incidents they reported.
+    if current_user.role == UserRole.DEVELOPER and incident.reporter_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can view AI assessments only for incidents you reported.",
+        )
+
+    analysis = (
+        db.query(AIAnalysis)
+        .filter(AIAnalysis.incident_id == incident_id)
+        .order_by(AIAnalysis.created_at.desc())
+        .first()
+    )
+    if not analysis:
+        return None
+
+    return AIAnalyzeResult.model_validate(json.loads(analysis.result_json))
+
+
 def analyze_incident(
     payload: AIAnalyzeRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
