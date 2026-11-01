@@ -1,17 +1,18 @@
 import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.ai import ai_service
-from app.api.deps import get_current_user, require_analyst_or_admin
+from app.api.deps import get_current_user
 from app.database.session import get_db
+from app.models.common import UserRole
 from app.models.scan import AIAnalysis
 from app.models.user import User
 from app.schemas.ai import AIAnalyzeRequest, AIAnalyzeResult
-from app.services import audit_service
+from app.services import audit_service, incident_service
 
-router = APIRouter(prefix="/api/ai", tags=["AI Incident Analyzer"], dependencies=[Depends(require_analyst_or_admin)])
+router = APIRouter(prefix="/api/ai", tags=["AI Incident Analyzer"])
 
 
 @router.post(
@@ -25,6 +26,22 @@ router = APIRouter(prefix="/api/ai", tags=["AI Incident Analyzer"], dependencies
 def analyze_incident(
     payload: AIAnalyzeRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
+    # Developers may use the analyzer only for incidents they personally reported.
+    # Analysts and administrators retain the existing ability to analyze any incident
+    # (or free-form text when incident_id is omitted).
+    if current_user.role == UserRole.DEVELOPER:
+        if not payload.incident_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Developers can analyze only incidents they have reported.",
+            )
+        incident = incident_service.get_incident_or_404(db, payload.incident_id)
+        if incident.reporter_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Developers can analyze only incidents they have reported.",
+            )
+
     raw_result = ai_service.analyze_incident(payload.description, payload.logs, payload.indicators)
 
     result = AIAnalyzeResult(
