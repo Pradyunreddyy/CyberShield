@@ -1,13 +1,13 @@
 from tests.conftest import auth_headers
 
 
-def test_developer_cannot_create_incident(client, developer_token):
+def test_developer_can_create_incident(client, developer_token):
     response = client.post(
         "/api/incidents",
         json={"title": "Suspicious login", "description": "test", "severity": "low"},
         headers=auth_headers(developer_token),
     )
-    assert response.status_code == 403
+    assert response.status_code == 201, response.text
 
 
 def test_analyst_can_create_incident(client, analyst_token):
@@ -49,11 +49,14 @@ def test_admin_can_view_all_incidents_list(client, admin_token):
     assert "items" in body and "total" in body
 
 
-def test_developer_only_sees_own_incidents(client, developer_token):
+def test_developer_only_sees_own_incidents(client, developer_token, analyst_token):
+    me = client.get("/api/auth/me", headers=auth_headers(developer_token)).json()["id"]
+    client.post("/api/incidents", json={"title": "Analyst-only incident", "severity": "low"}, headers=auth_headers(analyst_token))
     response = client.get("/api/incidents", headers=auth_headers(developer_token))
     assert response.status_code == 200
-    # A freshly-logged-in developer with no reported incidents should see none.
-    assert all(item for item in response.json()["items"]) or response.json()["items"] == []
+    items = response.json()["items"]
+    assert all(item["reporter"]["id"] == me for item in items)
+    assert "Analyst-only incident" not in [item["title"] for item in items]
 
 
 def test_unauthorized_role_cannot_delete_incident(client, developer_token, analyst_token):

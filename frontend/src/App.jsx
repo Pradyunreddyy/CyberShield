@@ -47,7 +47,7 @@ export default function App() {
         <Route
           path="/incidents/create"
           element={
-            <ProtectedRoute roles={["analyst", "admin"]}>
+            <ProtectedRoute roles={["developer", "analyst", "admin"]}>
               <IncidentCreate />
             </ProtectedRoute>
           }
