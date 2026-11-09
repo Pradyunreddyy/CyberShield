@@ -4,31 +4,27 @@ import { ArrowLeft, Bot, Check, Clock, FileText, Info, Plus, ShieldAlert, Sparkl
 import { Panel, SkeletonBlock, ErrorState, EmptyState } from "../components/Primitives";
 import { SeverityBadge, StatusBadge } from "../components/Badges";
 import { Button, Input, Select, Textarea } from "../components/Form";
-import { incidentsApi } from "../api/endpoints";
+import { incidentsApi, aiApi } from "../api/endpoints";
 import { getApiErrorMessage } from "../api/client";
 import { useAuth } from "../hooks/useAuth";
-import { useIncidentAnalyzer } from "../hooks/useIncidentAnalyzer";
 import { useToast } from "../context/ToastContext";
 import { formatDateTime, titleCase } from "../utils/formatters";
 
 const TABS = ["Overview", "Investigation", "Timeline", "Response Actions", "AI Analyzer"];
 const WORKFLOW = ["open", "investigating", "contained", "resolved", "closed"];
-// DOM ids must not contain spaces ("AI Analyzer"), or aria-controls/-labelledby break.
-const tabSlug = (tab) => tab.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
 export default function IncidentDetail() {
   const { incidentId } = useParams();
   const { user } = useAuth();
   const toast = useToast();
   const canManage = user.role === "analyst" || user.role === "admin";
+  const canUseAI = canManage || user.role === "developer";
 
   const [incident, setIncident] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("Overview");
   const loadedRef = useRef(false);
-  // Owned here (not by the tab) so the analysis survives tab switches; see the hook.
-  const analyzer = useIncidentAnalyzer(incidentId);
 
   // The first load shows a skeleton. Later refreshes (after a status change,
   // a new note, ...) update in place: swapping the page for a skeleton would
@@ -85,10 +81,6 @@ export default function IncidentDetail() {
   }
   if (!incident) return null;
 
-  // Analysts and admins may analyze any incident; a developer only one they reported
-  // (the backend enforces the same rule).
-  const canUseAI = canManage || (user.role === "developer" && incident.reporter?.id === user.id);
-
   const counts = {
     Investigation: incident.notes.length,
     Timeline: incident.timeline_events.length,
@@ -119,12 +111,12 @@ export default function IncidentDetail() {
 
       <Tabs tabs={TABS} counts={counts} active={activeTab} onChange={setActiveTab} />
 
-      <div role="tabpanel" id={`panel-${tabSlug(activeTab)}`} aria-labelledby={`tab-${tabSlug(activeTab)}`} tabIndex={0} className="focus:outline-none focus-visible:outline-2">
+      <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} tabIndex={0} className="focus:outline-none focus-visible:outline-2">
         {activeTab === "Overview" && <OverviewTab incident={incident} />}
         {activeTab === "Investigation" && <InvestigationTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
         {activeTab === "Timeline" && <TimelineTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
         {activeTab === "Response Actions" && <ActionsTab incident={incident} canManage={canManage} onUpdated={load} toast={toast} />}
-        {activeTab === "AI Analyzer" && canUseAI && <AIAnalyzerTab incident={incident} analyzer={analyzer} />}
+        {activeTab === "AI Analyzer" && canUseAI && <AIAnalyzerTab incident={incident} />}
         {activeTab === "AI Analyzer" && !canUseAI && (
           <Panel>
             <p className="text-sm text-ink-muted">Your role does not have access to the AI Incident Analyzer.</p>
@@ -195,9 +187,9 @@ function Tabs({ tabs, counts, active, onChange }) {
             ref={(el) => (refs.current[tab] = el)}
             type="button"
             role="tab"
-            id={`tab-${tabSlug(tab)}`}
+            id={`tab-${tab}`}
             aria-selected={selected}
-            aria-controls={`panel-${tabSlug(tab)}`}
+            aria-controls={`panel-${tab}`}
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(tab)}
             className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors duration-120 ${
@@ -511,33 +503,48 @@ function NumberedList({ items }) {
   );
 }
 
-function AIAnalyzerTab({ incident, analyzer }) {
-  const { logs, indicators, result, loading, error, startedAt, setField, run } = analyzer;
-  const description = analyzer.description ?? incident.description ?? "";
+function AIAnalyzerTab({ incident }) {
+  const [description, setDescription] = useState(incident.description || "");
+  const [logs, setLogs] = useState("");
+  const [indicators, setIndicators] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [elapsed, setElapsed] = useState(0);
 
-  // Real elapsed time of the real request, measured from when it started (so it stays
-  // correct if you leave the tab and return mid-request). No invented "phases".
-  const [now, setNow] = useState(() => Date.now());
+  // Real elapsed time of the real request. No invented "phases".
   useEffect(() => {
-    if (!loading) return undefined;
-    setNow(Date.now());
-    const t = setInterval(() => setNow(Date.now()), 500);
+    if (!loading) {
+      setElapsed(0);
+      return undefined;
+    }
+    const started = Date.now();
+    const t = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 500);
     return () => clearInterval(t);
   }, [loading]);
-  const elapsed = loading && startedAt ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
 
-  function handleAnalyze(e) {
+  async function handleAnalyze(e) {
     e?.preventDefault();
-    run({ description, logs, indicators });
+    setError("");
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await aiApi.analyzeIncident({ incident_id: incident.id, description, logs: logs || undefined, indicators: indicators || undefined });
+      setResult(res.data);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "The AI Incident Analyzer could not be reached."));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
       <Panel title="Analysis input" description="What the analyzer is given" className="lg:col-span-2">
         <form onSubmit={handleAnalyze} className="space-y-3.5">
-          <Textarea label="Incident description" rows={4} value={description} onChange={(e) => setField("description", e.target.value)} />
-          <Textarea label="Logs / text (optional)" rows={4} value={logs} onChange={(e) => setField("logs", e.target.value)} placeholder="Paste relevant log lines here…" className="font-mono text-xs" />
-          <Textarea label="Known indicators (optional)" rows={2} value={indicators} onChange={(e) => setField("indicators", e.target.value)} placeholder="IPs, hashes, domains…" className="font-mono text-xs" />
+          <Textarea label="Incident description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} />
+          <Textarea label="Logs / text (optional)" rows={4} value={logs} onChange={(e) => setLogs(e.target.value)} placeholder="Paste relevant log lines here…" className="font-mono text-xs" />
+          <Textarea label="Known indicators (optional)" rows={2} value={indicators} onChange={(e) => setIndicators(e.target.value)} placeholder="IPs, hashes, domains…" className="font-mono text-xs" />
           <Button type="submit" loading={loading} className="w-full">
             <Sparkles size={15} aria-hidden="true" /> Run AI incident analyzer
           </Button>

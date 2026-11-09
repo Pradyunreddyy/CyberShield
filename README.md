@@ -388,3 +388,17 @@ See [`docs/SECURITY.md`](docs/SECURITY.md) for the full table of risks considere
 ---
 
 *Screenshots: add your own screenshots of the Dashboard, Incident Detail, Project Security Analyzer, and Analytics pages here before submitting.*
+
+## Search Engine Setup (Google Search Console + Open Graph)
+
+The frontend includes Open Graph and Twitter Card metadata, a canonical login URL, `robots.txt`, and `sitemap.xml`. Authenticated incident, dashboard, scanner, analytics, profile, and admin routes are excluded from crawling.
+
+To verify the deployed site in Google Search Console:
+
+1. Add `https://cyber-shield-ebon.vercel.app/` as a **URL-prefix property**.
+2. Choose the **HTML tag** verification method and copy the token from the `content` attribute (not the entire tag).
+3. In Vercel, open the frontend project's **Settings → Environment Variables** and add `VITE_GOOGLE_SITE_VERIFICATION` with that token for Production.
+4. Redeploy the frontend, then click **Verify** in Search Console.
+5. Submit `https://cyber-shield-ebon.vercel.app/sitemap.xml` under **Indexing → Sitemaps**.
+
+The verification token is intentionally not committed to the repository. Open Graph image previews currently use the existing 512×512 CyberShield app icon.

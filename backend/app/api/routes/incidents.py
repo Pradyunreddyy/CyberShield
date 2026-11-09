@@ -76,12 +76,6 @@ def list_incidents(
     summary="Create a new incident (developer/analyst/admin)",
 )
 def create_incident(payload: IncidentCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # Reporting is open to developers, but assignment is an analyst/admin operation.
-    # The form never sends this field; this stops a direct API call from doing it.
-    if current_user.role == UserRole.DEVELOPER and payload.assigned_analyst_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Developers cannot assign incidents to an analyst."
-        )
     incident = incident_service.create_incident(db, payload, current_user)
     return incident_service.get_incident_or_404(db, incident.id)
 

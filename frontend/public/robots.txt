@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /login
+Allow: /register
+Disallow: /dashboard
+Disallow: /incidents
+Disallow: /project-scanner
+Disallow: /analytics
+Disallow: /alerts
+Disallow: /profile
+Disallow: /admin/
+
+Sitemap: https://cyber-shield-ebon.vercel.app/sitemap.xml

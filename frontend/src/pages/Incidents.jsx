@@ -37,8 +37,7 @@ export default function Incidents() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  // Every role may report an incident; the backend still enforces what a developer can do with it.
-  const canCreate = ["developer", "analyst", "admin"].includes(user.role);
+  const canCreate = user.role === "analyst" || user.role === "admin";
 
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
