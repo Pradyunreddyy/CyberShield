@@ -14,7 +14,8 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const canSeeAnalytics = user.role === "analyst" || user.role === "admin";
-  const canCreate = canSeeAnalytics;
+  // Reporting is not tied to seeing analytics: developers can report but get no charts.
+  const canCreate = ["developer", "analyst", "admin"].includes(user.role);
 
   const [stats, setStats] = useState(null);
   const [overview, setOverview] = useState(null);

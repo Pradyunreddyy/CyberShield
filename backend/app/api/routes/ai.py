@@ -9,8 +9,9 @@ from app.database.session import get_db
 from app.models.common import UserRole
 from app.models.scan import AIAnalysis
 from app.models.user import User
+from app.repositories import incident_repo
 from app.schemas.ai import AIAnalyzeRequest, AIAnalyzeResult
-from app.services import audit_service, incident_service
+from app.services import audit_service
 
 router = APIRouter(prefix="/api/ai", tags=["AI Incident Analyzer"])
 
@@ -30,13 +31,10 @@ def analyze_incident(
     # Analysts and administrators retain the existing ability to analyze any incident
     # (or free-form text when incident_id is omitted).
     if current_user.role == UserRole.DEVELOPER:
-        if not payload.incident_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Developers can analyze only incidents they have reported.",
-            )
-        incident = incident_service.get_incident_or_404(db, payload.incident_id)
-        if incident.reporter_id != current_user.id:
+        incident = incident_repo.get_by_id(db, payload.incident_id) if payload.incident_id else None
+        # A missing id, an unknown id and another user's incident all return the same
+        # 403, so a developer cannot probe which incident ids exist.
+        if incident is None or incident.reporter_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Developers can analyze only incidents they have reported.",
