@@ -3,7 +3,8 @@ import tempfile
 import zipfile
 from pathlib import PurePosixPath
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from starlette.datastructures import UploadFile as StarletteUploadFile
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
