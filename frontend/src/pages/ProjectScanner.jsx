@@ -8,6 +8,9 @@ import { getApiErrorMessage } from "../api/client";
 import { useToast } from "../context/ToastContext";
 import { formatBytes, formatDateTime } from "../utils/formatters";
 
+const MAX_PROJECT_FILES = 2500;
+const MAX_UPLOAD_BYTES = 40 * 1024 * 1024;
+
 export default function ProjectScanner() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -51,13 +54,14 @@ export default function ProjectScanner() {
   async function handleFiles(fileList, mode = "multiple") {
     const files = Array.from(fileList || []);
     if (!files.length || uploading) return;
+    if (files.length > MAX_PROJECT_FILES) { toast.error(`A project can contain at most ${MAX_PROJECT_FILES.toLocaleString()} files.`); return; }
     const isZip = files.length === 1 && files[0].name.toLowerCase().endsWith(".zip") && mode !== "folder";
     if (files.some((item) => item.name.toLowerCase().endsWith(".zip")) && !isZip) {
       toast.error("Upload one ZIP archive at a time, or select source files/folders without ZIP files.");
       return;
     }
     const totalBytes = files.reduce((sum, item) => sum + item.size, 0);
-    if (totalBytes > 25 * 1024 * 1024) { toast.error("The total upload must be 25 MB or smaller."); return; }
+    if (totalBytes > MAX_UPLOAD_BYTES) { toast.error("The total upload must be 40 MB or smaller."); return; }
     setUploading(true);
     setUploadingName(`${files.length === 1 ? (files[0].webkitRelativePath || files[0].name) : `${files.length} files`} · ${formatBytes(totalBytes)}`);
     try {
@@ -127,7 +131,7 @@ export default function ProjectScanner() {
               <p className="text-sm text-ink">
                 <span className="font-medium text-signal-bright">Choose a ZIP or source file</span> or drag and drop files here
               </p>
-              <p className="text-xs text-ink-muted">ZIP, individual source files, multiple files, or a whole folder · 25 MB total</p>
+              <p className="text-xs text-ink-muted">ZIP, individual source files, multiple files, or a whole folder · up to 2,500 files · 40 MB total</p>
               <div className="mt-3 flex flex-wrap justify-center gap-2">
                 <button type="button" disabled={uploading} onClick={(e) => { e.preventDefault(); e.stopPropagation(); multiInputRef.current?.click(); }} className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-2 text-xs font-medium text-ink-muted hover:bg-panel-raised"><Files size={14} /> Select multiple files</button>
                 <button type="button" disabled={uploading} onClick={(e) => { e.preventDefault(); e.stopPropagation(); folderInputRef.current?.click(); }} className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-2 text-xs font-medium text-ink-muted hover:bg-panel-raised"><FolderOpen size={14} /> Select folder</button>

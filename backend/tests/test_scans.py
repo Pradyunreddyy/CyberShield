@@ -32,6 +32,19 @@ def test_reject_file_too_large(client, developer_token, monkeypatch):
     )
     assert response.status_code == 413
 
+def test_reject_too_many_source_files(client, developer_token, monkeypatch):
+    monkeypatch.setattr(settings, "MAX_FILES_PER_ARCHIVE", 1)
+    response = client.post(
+        "/api/scans",
+        files=[
+            ("files", ("one.py", b"print('one')", "text/plain")),
+            ("files", ("two.py", b"print('two')", "text/plain")),
+        ],
+        headers=auth_headers(developer_token),
+    )
+    assert response.status_code == 413
+    assert "Too many files" in response.json()["detail"]
+
 
 def test_upload_and_scan_detects_suspicious_pattern(client, developer_token):
     zip_bytes = _build_test_zip(

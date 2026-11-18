@@ -24,77 +24,84 @@ router = APIRouter(prefix="/api/scans", tags=["Project Security Analyzer"])
     summary="Upload a ZIP archive, source files, or a project folder for security analysis",
     description="Uploads are safely staged and statically analyzed. Uploaded code is NEVER executed.",
 )
-def upload_scan(
-    file: UploadFile | None = File(default=None),
-    files: list[UploadFile] | None = File(default=None),
+async def upload_scan(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if file is not None:
-        scan = scan_service.run_project_scan(db, file, current_user)
-        return scan_repo.get_scan(db, scan.id)
+    # Starlette defaults to 1,000 multipart files; explicitly raise the parser
+    # cap so the configured 2,500-file project limit works for folder uploads.
+    async with request.form(max_files=settings.MAX_FILES_PER_ARCHIVE + 1, max_fields=100) as form:
+        file = form.get("file")
+        if not isinstance(file, StarletteUploadFile):
+            file = None
+        uploads = [item for item in form.getlist("files") if isinstance(item, StarletteUploadFile)]
 
-    uploads = files or []
-    if not uploads:
-        raise HTTPException(status_code=400, detail="Upload a ZIP archive or one or more project files.")
-    if len(uploads) > settings.MAX_FILES_PER_ARCHIVE:
-        raise HTTPException(status_code=413, detail=f"Too many files. Limit: {settings.MAX_FILES_PER_ARCHIVE}.")
+        if file is not None:
+            scan = scan_service.run_project_scan(db, file, current_user)
+            return scan_repo.get_scan(db, scan.id)
 
-    max_bytes = settings.UPLOAD_MAX_SIZE_BYTES
-    total_bytes = 0
-    seen_paths = set()
-    temp_path = None
-    allowed_exts = {
-        ".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".c", ".h", ".cpp", ".hpp", ".cs",
-        ".go", ".rb", ".php", ".sh", ".bash", ".ps1", ".yml", ".yaml", ".json", ".env",
-        ".txt", ".md", ".html", ".css", ".sql", ".xml", ".toml", ".ini", ".cfg", ".rs",
-        ".swift", ".kt", ".dart", ".vue", ".svelte", ".properties", ".gradle",
-    }
-    ignored_dirs = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build", "coverage"}
-    try:
-        with tempfile.NamedTemporaryFile(prefix="scan_bundle_", suffix=".zip", delete=False) as temp:
-            temp_path = temp.name
-        with zipfile.ZipFile(temp_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        if not uploads:
+            raise HTTPException(status_code=400, detail="Upload a ZIP archive or one or more project files.")
+        if len(uploads) > settings.MAX_FILES_PER_ARCHIVE:
+            raise HTTPException(status_code=413, detail=f"Too many files. Limit: {settings.MAX_FILES_PER_ARCHIVE}.")
+
+        max_bytes = settings.UPLOAD_MAX_SIZE_BYTES
+        total_bytes = 0
+        seen_paths = set()
+        temp_path = None
+        allowed_exts = {
+            ".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".c", ".h", ".cpp", ".hpp", ".cs",
+            ".go", ".rb", ".php", ".sh", ".bash", ".ps1", ".yml", ".yaml", ".json", ".env",
+            ".txt", ".md", ".html", ".css", ".sql", ".xml", ".toml", ".ini", ".cfg", ".rs",
+            ".swift", ".kt", ".dart", ".vue", ".svelte", ".properties", ".gradle",
+        }
+        ignored_dirs = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build", "coverage"}
+        try:
+            with tempfile.NamedTemporaryFile(prefix="scan_bundle_", suffix=".zip", delete=False) as temp:
+                temp_path = temp.name
+            with zipfile.ZipFile(temp_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                for upload in uploads:
+                    name = (upload.filename or "").replace("\\", "/")
+                    raw_parts = name.split("/")
+                    path = PurePosixPath(name)
+                    parts = path.parts
+                    if (
+                        not name
+                        or name.startswith("/")
+                        or any(part in ("", ".", "..") for part in raw_parts)
+                        or path.is_absolute()
+                        or ":" in name
+                    ):
+                        raise HTTPException(status_code=400, detail="A file path is invalid or attempts to escape the project folder.")
+                    if any(part in ignored_dirs or part.startswith(".") for part in parts[:-1]):
+                        continue
+                    if path.suffix.lower() not in allowed_exts and path.name.lower() not in {"dockerfile", "makefile", ".env"}:
+                        continue
+                    normalized_name = str(path)
+                    if normalized_name in seen_paths:
+                        raise HTTPException(status_code=400, detail="The upload contains duplicate file paths.")
+                    seen_paths.add(normalized_name)
+                    data = upload.file.read(max_bytes - total_bytes + 1)
+                    total_bytes += len(data)
+                    if total_bytes > max_bytes:
+                        raise HTTPException(status_code=413, detail=f"Total upload exceeds {max_bytes // (1024 * 1024)} MB.")
+                    archive.writestr(str(path), data)
+            if total_bytes == 0:
+                raise HTTPException(status_code=415, detail="No supported source or text files were found in the upload.")
+            with open(temp_path, "rb") as archive_file:
+                bundle = UploadFile(filename="project-files.zip", file=archive_file)
+                scan = scan_service.run_project_scan(db, bundle, current_user)
+            return scan_repo.get_scan(db, scan.id)
+        finally:
             for upload in uploads:
-                name = (upload.filename or "").replace("\\", "/")
-                raw_parts = name.split("/")
-                path = PurePosixPath(name)
-                parts = path.parts
-                if (
-                    not name
-                    or name.startswith("/")
-                    or any(part in ("", ".", "..") for part in raw_parts)
-                    or path.is_absolute()
-                    or ":" in name
-                ):
-                    raise HTTPException(status_code=400, detail="A file path is invalid or attempts to escape the project folder.")
-                if any(part in ignored_dirs or part.startswith(".") for part in parts[:-1]):
-                    continue
-                if path.suffix.lower() not in allowed_exts and path.name.lower() not in {"dockerfile", "makefile", ".env"}:
-                    continue
-                normalized_name = str(path)
-                if normalized_name in seen_paths:
-                    raise HTTPException(status_code=400, detail="The upload contains duplicate file paths.")
-                seen_paths.add(normalized_name)
-                data = upload.file.read(max_bytes - total_bytes + 1)
-                total_bytes += len(data)
-                if total_bytes > max_bytes:
-                    raise HTTPException(status_code=413, detail=f"Total upload exceeds {max_bytes // (1024 * 1024)} MB.")
-                archive.writestr(str(path), data)
-        if total_bytes == 0:
-            raise HTTPException(status_code=415, detail="No supported source or text files were found in the upload.")
-        with open(temp_path, "rb") as archive_file:
-            bundle = UploadFile(filename="project-files.zip", file=archive_file)
-            scan = scan_service.run_project_scan(db, bundle, current_user)
-        return scan_repo.get_scan(db, scan.id)
-    finally:
-        for upload in uploads:
-            try:
-                upload.file.close()
-            except Exception:
-                pass
-        if temp_path and os.path.exists(temp_path):
-            os.remove(temp_path)
+                try:
+                    upload.file.close()
+                except Exception:
+                    pass
+            if temp_path and os.path.exists(temp_path):
+                os.remove(temp_path)
+
 
 @router.get("", response_model=list[ScanOut], summary="List project scans")
 def list_scans(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
