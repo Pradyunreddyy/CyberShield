@@ -40,10 +40,10 @@ class Settings(BaseSettings):
     AI_REQUEST_TIMEOUT_SECONDS: int = 120
     
     # --- File Uploads ------------------------------------------------------
-    UPLOAD_MAX_SIZE_BYTES: int = 25 * 1024 * 1024  # 25 MB
+    UPLOAD_MAX_SIZE_BYTES: int = 40 * 1024 * 1024  # 40 MB
     UPLOAD_ALLOWED_EXTENSIONS: str = ".zip"
     UPLOAD_TMP_DIR: str = "/tmp/incident_platform_uploads"
-    MAX_FILES_PER_ARCHIVE: int = 2000
+    MAX_FILES_PER_ARCHIVE: int = 2500
     MAX_UNCOMPRESSED_ARCHIVE_BYTES: int = 200 * 1024 * 1024  # 200 MB, anti zip-bomb
 
     # --- Demo / seed data ------------------------------------------------------
